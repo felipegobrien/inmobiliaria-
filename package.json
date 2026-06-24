@@ -1,0 +1,14 @@
+{
+  "name": "inmobiliaria",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Portal inmobiliario — web (Next.js) + app (Expo) sobre Supabase",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "web": "npm run dev -w @inmo/web",
+    "mobile": "npm run start -w @inmo/mobile"
+  }
+}

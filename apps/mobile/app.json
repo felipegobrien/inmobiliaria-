@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Inmobiliaria",
+    "slug": "inmobiliaria",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.inmobiliaria.app"
+    },
+    "android": {
+      "package": "com.inmobiliaria.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#064e3b",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0c54f3a7-d8e4-46a5-b71a-bc8f1d226d3b"
+      }
+    }
+  }
+}

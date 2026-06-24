@@ -1,0 +1,263 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type {
+  Amenity,
+  Property,
+  PropertyFilters,
+  PropertyWithImages,
+} from './types';
+
+// Datos para crear/editar un inmueble (sin los campos que pone el servidor).
+export type PropertyInput = Omit<
+  Property,
+  'id' | 'owner_id' | 'views_count' | 'created_at' | 'updated_at' | 'published_at' | 'location'
+> & {
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+/**
+ * Crear un inmueble y asociar sus imágenes (URLs ya subidas a Storage).
+ * Devuelve el id del inmueble creado.
+ */
+export async function createProperty(
+  supabase: SupabaseClient,
+  ownerId: string,
+  input: PropertyInput,
+  imageUrls: string[] = [],
+): Promise<string> {
+  const { latitude, longitude, ...rest } = input;
+
+  const row: Record<string, unknown> = {
+    ...rest,
+    owner_id: ownerId,
+    published_at: rest.status === 'activo' ? new Date().toISOString() : null,
+  };
+  if (latitude != null && longitude != null) {
+    row.location = `SRID=4326;POINT(${longitude} ${latitude})`;
+  }
+
+  const { data, error } = await supabase
+    .from('properties')
+    .insert(row)
+    .select('id')
+    .single();
+  if (error) throw error;
+
+  const propertyId = data.id as string;
+
+  if (imageUrls.length) {
+    const images = imageUrls.map((url, i) => ({
+      property_id: propertyId,
+      url,
+      position: i,
+      is_cover: i === 0,
+    }));
+    const { error: imgErr } = await supabase.from('property_images').insert(images);
+    if (imgErr) throw imgErr;
+  }
+
+  return propertyId;
+}
+
+const PAGE_SIZE = 20;
+
+const SORT_MAP: Record<NonNullable<PropertyFilters['sortBy']>, { col: string; asc: boolean }> = {
+  recientes: { col: 'published_at', asc: false },
+  precio_asc: { col: 'price', asc: true },
+  precio_desc: { col: 'price', asc: false },
+  area_desc: { col: 'area_m2', asc: false },
+};
+
+/**
+ * Buscar inmuebles con filtros combinados.
+ * Devuelve { data, count } para paginación.
+ */
+export async function searchProperties(
+  supabase: SupabaseClient,
+  filters: PropertyFilters = {},
+): Promise<{ data: PropertyWithImages[]; count: number }> {
+  const page = filters.page ?? 0;
+  const pageSize = filters.pageSize ?? PAGE_SIZE;
+
+  let query = supabase
+    .from('properties')
+    .select('*, property_images(*)', { count: 'exact' })
+    .eq('status', 'activo');
+
+  if (filters.operation) {
+    // venta_arriendo cubre ambas; si piden venta o arriendo, incluir también el combinado
+    if (filters.operation === 'venta' || filters.operation === 'arriendo') {
+      query = query.in('operation', [filters.operation, 'venta_arriendo']);
+    } else {
+      query = query.eq('operation', filters.operation);
+    }
+  }
+  if (filters.type) query = query.eq('type', filters.type);
+  if (filters.city) query = query.ilike('city', filters.city);
+  if (filters.search) {
+    query = query.or(`title.ilike.%${filters.search}%,neighborhood.ilike.%${filters.search}%`);
+  }
+  if (filters.minPrice != null) query = query.gte('price', filters.minPrice);
+  if (filters.maxPrice != null) query = query.lte('price', filters.maxPrice);
+  if (filters.estrato?.length) query = query.in('estrato', filters.estrato);
+  if (filters.minBedrooms != null) query = query.gte('bedrooms', filters.minBedrooms);
+  if (filters.minBathrooms != null) query = query.gte('bathrooms', filters.minBathrooms);
+  if (filters.minParking != null) query = query.gte('parking_spots', filters.minParking);
+  if (filters.minArea != null) query = query.gte('area_m2', filters.minArea);
+  if (filters.maxArea != null) query = query.lte('area_m2', filters.maxArea);
+
+  const sort = SORT_MAP[filters.sortBy ?? 'recientes'];
+  query = query.order(sort.col, { ascending: sort.asc, nullsFirst: false });
+
+  const from = page * pageSize;
+  query = query.range(from, from + pageSize - 1);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return { data: (data ?? []) as PropertyWithImages[], count: count ?? 0 };
+}
+
+/** Actualizar un inmueble existente (solo el dueño, por RLS). */
+export async function updateProperty(
+  supabase: SupabaseClient,
+  id: string,
+  input: PropertyInput,
+  newImageUrls: string[] = [],
+): Promise<void> {
+  const { latitude, longitude, ...rest } = input;
+
+  const row: Record<string, unknown> = {
+    ...rest,
+    published_at: rest.status === 'activo' ? new Date().toISOString() : null,
+  };
+  if (latitude != null && longitude != null) {
+    row.location = `SRID=4326;POINT(${longitude} ${latitude})`;
+  }
+
+  const { error } = await supabase.from('properties').update(row).eq('id', id);
+  if (error) throw error;
+
+  if (newImageUrls.length) {
+    // Posición de las nuevas fotos = después de las existentes.
+    const { count } = await supabase
+      .from('property_images')
+      .select('*', { count: 'exact', head: true })
+      .eq('property_id', id);
+    const start = count ?? 0;
+    const images = newImageUrls.map((url, i) => ({
+      property_id: id,
+      url,
+      position: start + i,
+      is_cover: start === 0 && i === 0,
+    }));
+    const { error: imgErr } = await supabase.from('property_images').insert(images);
+    if (imgErr) throw imgErr;
+  }
+}
+
+/** Eliminar un inmueble (sus imágenes y relaciones se borran en cascada). */
+export async function deleteProperty(
+  supabase: SupabaseClient,
+  id: string,
+): Promise<void> {
+  const { error } = await supabase.from('properties').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** Eliminar una imagen específica de un inmueble. */
+export async function deletePropertyImage(
+  supabase: SupabaseClient,
+  imageId: string,
+): Promise<void> {
+  const { error } = await supabase.from('property_images').delete().eq('id', imageId);
+  if (error) throw error;
+}
+
+/** Obtener un inmueble con imágenes y datos del dueño. */
+export async function getProperty(
+  supabase: SupabaseClient,
+  id: string,
+): Promise<PropertyWithImages | null> {
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*, property_images(*), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified)')
+    .eq('id', id)
+    .single();
+  if (error) {
+    if (error.code === 'PGRST116') return null; // no rows
+    throw error;
+  }
+  // Registrar vista (sin bloquear)
+  void supabase.rpc('increment_property_views', { prop_id: id });
+  return data as PropertyWithImages;
+}
+
+/** Inmuebles del usuario autenticado (incluye borradores/pausados). */
+export async function getMyProperties(
+  supabase: SupabaseClient,
+  ownerId: string,
+): Promise<PropertyWithImages[]> {
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*, property_images(*)')
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as PropertyWithImages[];
+}
+
+/** Catálogo de amenidades. */
+export async function getAmenities(supabase: SupabaseClient): Promise<Amenity[]> {
+  const { data, error } = await supabase.from('amenities').select('*').order('name');
+  if (error) throw error;
+  return (data ?? []) as Amenity[];
+}
+
+/** Alternar favorito. */
+export async function toggleFavorite(
+  supabase: SupabaseClient,
+  userId: string,
+  propertyId: string,
+  isFav: boolean,
+): Promise<void> {
+  if (isFav) {
+    const { error } = await supabase
+      .from('favorites')
+      .delete()
+      .eq('user_id', userId)
+      .eq('property_id', propertyId);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from('favorites')
+      .insert({ user_id: userId, property_id: propertyId });
+    if (error) throw error;
+  }
+}
+
+/** Ids de los inmuebles marcados como favoritos por el usuario. */
+export async function getFavoriteIds(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('favorites')
+    .select('property_id')
+    .eq('user_id', userId);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => r.property_id as string);
+}
+
+/** Favoritos del usuario. */
+export async function getFavorites(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<PropertyWithImages[]> {
+  const { data, error } = await supabase
+    .from('favorites')
+    .select('property:properties(*, property_images(*))')
+    .eq('user_id', userId);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => r.property).filter(Boolean) as PropertyWithImages[];
+}
