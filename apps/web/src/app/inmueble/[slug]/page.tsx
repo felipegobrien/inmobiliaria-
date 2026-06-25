@@ -161,7 +161,7 @@ export default async function PropertyDetailPage({
             <p className="mt-4 text-3xl font-bold text-emerald-800 dark:text-emerald-400">
               {formatPrice(property.price)}
               {property.operation !== "venta" && (
-                <span className="text-base font-normal text-zinc-500">/mes</span>
+                <span className="text-base font-normal text-zinc-500">{" / mes"}</span>
               )}
             </p>
             {!!property.admon_fee && (

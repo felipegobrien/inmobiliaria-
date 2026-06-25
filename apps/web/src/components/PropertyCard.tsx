@@ -50,7 +50,7 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
         <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
           {formatPrice(property.price)}
           {property.operation !== "venta" && (
-            <span className="text-sm font-normal text-zinc-500">/mes</span>
+            <span className="text-sm font-normal text-zinc-500">{" / mes"}</span>
           )}
         </p>
         <p className="line-clamp-1 text-sm text-zinc-500">

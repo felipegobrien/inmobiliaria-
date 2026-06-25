@@ -180,7 +180,7 @@ class _PropertyCardState extends State<PropertyCard> {
                 children: [
                   Text(
                     formatPrice(property.price) +
-                        (property.operation != 'venta' ? '/mes' : ''),
+                        (property.operation != 'venta' ? ' / mes' : ''),
                     style: const TextStyle(
                         fontSize: 21,
                         fontWeight: FontWeight.w800,

@@ -345,7 +345,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   ),
                 const SizedBox(height: 14),
                 Text(
-                  formatPrice(p.price) + (p.operation != 'venta' ? '/mes' : ''),
+                  formatPrice(p.price) + (p.operation != 'venta' ? ' / mes' : ''),
                   style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
