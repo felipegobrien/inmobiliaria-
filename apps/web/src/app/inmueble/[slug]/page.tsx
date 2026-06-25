@@ -146,6 +146,17 @@ export default async function PropertyDetailPage({
                 .filter(Boolean)
                 .join(", ")}
             </p>
+            {property.published_at && (
+              <p className="mt-1 text-xs text-zinc-400">
+                Publicado el{" "}
+                {new Date(property.published_at).toLocaleDateString("es-CO", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}{" "}
+                · Cód. {property.ref}
+              </p>
+            )}
 
             <p className="mt-4 text-3xl font-bold text-emerald-800 dark:text-emerald-400">
               {formatPrice(property.price)}

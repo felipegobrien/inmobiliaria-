@@ -240,6 +240,42 @@ export async function updateProperty(
   }
 }
 
+/** Republicar: reactiva y renueva el vencimiento según el plan elegido. */
+export async function republishProperty(
+  supabase: SupabaseClient,
+  id: string,
+  plan: Plan,
+): Promise<void> {
+  const now = new Date();
+  const { error } = await supabase
+    .from('properties')
+    .update({
+      status: 'activo',
+      published_at: now.toISOString(),
+      expires_at: new Date(
+        now.getTime() + plan.duration_days * 86400000,
+      ).toISOString(),
+      plan: plan.id,
+      featured: plan.is_featured,
+      featured_at: plan.is_featured ? now.toISOString() : null,
+    })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/** Cambiar estado de un inmueble (vendido / arrendado / activo / pausado). */
+export async function setPropertyStatus(
+  supabase: SupabaseClient,
+  id: string,
+  status: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('properties')
+    .update({ status })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 /** Eliminar un inmueble (sus imágenes y relaciones se borran en cascada). */
 export async function deleteProperty(
   supabase: SupabaseClient,
