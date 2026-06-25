@@ -48,22 +48,19 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
 
       {property.owner?.role === "inmobiliaria" && property.owner.company && (
         <div className="flex items-center gap-2 border-b border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800/40">
-          <span className="text-emerald-700">🏢</span>
-          <span className="flex-1 truncate text-base font-semibold text-emerald-800 dark:text-emerald-300">
+          <span className="flex-1 truncate text-base font-semibold capitalize text-emerald-800 dark:text-emerald-300">
             {property.owner.company}
           </span>
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-700 bg-white">
-            {property.owner.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
+          {property.owner.avatar_url && (
+            <span className="flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={property.owner.avatar_url}
                 alt={property.owner.company}
                 className="h-full w-full object-cover"
               />
-            ) : (
-              <span className="text-emerald-700">🏢</span>
-            )}
-          </span>
+            </span>
+          )}
         </div>
       )}
 

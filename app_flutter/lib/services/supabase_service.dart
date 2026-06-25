@@ -346,6 +346,15 @@ class PropertyService {
         .update({'status': 'rechazada'}).eq('id', id);
   }
 
+  static Future<Map<String, dynamic>?> profileById(String id) async {
+    final data = await supabase
+        .from('profiles')
+        .select('full_name, company, avatar_url')
+        .eq('id', id)
+        .maybeSingle();
+    return data;
+  }
+
   static Future<List<Property>> agencyProperties(String ownerId) async {
     final data = await supabase
         .from('properties')

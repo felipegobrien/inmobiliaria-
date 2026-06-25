@@ -11,11 +11,18 @@ async function getAgency(id: string) {
   const supabase = getServerSupabase();
   const { data } = await supabase
     .from("profiles")
-    .select("id, full_name, company, verified, role")
+    .select("id, full_name, company, verified, role, avatar_url")
     .eq("id", id)
     .maybeSingle();
   return data as
-    | { id: string; full_name: string | null; company: string | null; verified: boolean; role: string }
+    | {
+        id: string;
+        full_name: string | null;
+        company: string | null;
+        verified: boolean;
+        role: string;
+        avatar_url: string | null;
+      }
     | null;
 }
 
@@ -55,12 +62,21 @@ export default async function AgencyPage({
     <div className="min-h-full bg-zinc-50 dark:bg-black">
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-2xl text-white">
-            🏢
+        <div className="mb-6 flex items-center gap-4">
+          <div className="flex h-20 w-32 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-white">
+            {agency.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={agency.avatar_url}
+                alt={name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-3xl text-emerald-700">🏠</span>
+            )}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            <h1 className="text-2xl font-bold capitalize text-zinc-900 dark:text-zinc-50">
               {name}
               {agency.verified && (
                 <span className="ml-2 align-middle text-sm text-emerald-700">

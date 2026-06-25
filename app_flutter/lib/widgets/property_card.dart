@@ -184,16 +184,13 @@ class _PropertyCardState extends State<PropertyCard> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.apartment,
-                        size: 18, color: AppColors.primary),
-                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        property.owner!.company!,
+                        titleCase(property.owner!.company!),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.primaryDark),
                       ),
@@ -276,12 +273,12 @@ class _PropertyCardState extends State<PropertyCard> {
 
   Widget _agencyLogo(Owner owner) {
     return Container(
-      width: 46,
-      height: 46,
+      width: 64,
+      height: 40,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(8),
         color: Colors.white,
-        border: Border.all(color: AppColors.primary, width: 2),
+        border: Border.all(color: AppColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: (owner.avatarUrl != null && owner.avatarUrl!.isNotEmpty)
@@ -289,9 +286,9 @@ class _PropertyCardState extends State<PropertyCard> {
               imageUrl: owner.avatarUrl!,
               fit: BoxFit.cover,
               errorWidget: (_, __, ___) =>
-                  const Icon(Icons.apartment, color: AppColors.primary, size: 22),
+                  const Icon(Icons.apartment, color: AppColors.primary, size: 20),
             )
-          : const Icon(Icons.apartment, color: AppColors.primary, size: 22),
+          : const Icon(Icons.apartment, color: AppColors.primary, size: 20),
     );
   }
 

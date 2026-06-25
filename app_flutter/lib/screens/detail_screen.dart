@@ -366,16 +366,18 @@ class _DetailScreenState extends State<DetailScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.apartment,
-                                color: AppColors.primary),
+                            _agencyLogo(p.owner!),
                             const SizedBox(width: 10),
                             Expanded(
-                              child: Text(p.owner!.company!,
+                              child: Text(titleCase(p.owner!.company!),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w700,
+                                      fontSize: 16,
                                       color: AppColors.primaryDark)),
                             ),
-                            const Text('Ver inmobiliaria →',
+                            const Text('Ver →',
                                 style: TextStyle(
                                     fontSize: 12, color: AppColors.primary)),
                           ],
@@ -583,6 +585,27 @@ class _DetailScreenState extends State<DetailScreen> {
       ));
     }
     return widgets;
+  }
+
+  Widget _agencyLogo(Owner owner) {
+    return Container(
+      width: 64,
+      height: 44,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        border: Border.all(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: (owner.avatarUrl != null && owner.avatarUrl!.isNotEmpty)
+          ? CachedNetworkImage(
+              imageUrl: owner.avatarUrl!,
+              fit: BoxFit.cover,
+              errorWidget: (_, __, ___) =>
+                  const Icon(Icons.apartment, color: AppColors.primary),
+            )
+          : const Icon(Icons.apartment, color: AppColors.primary),
+    );
   }
 
   Widget _stat(IconData icon, String label, String value) {

@@ -160,12 +160,24 @@ export default async function PropertyDetailPage({
             {owner?.role === "inmobiliaria" && owner.company && (
               <a
                 href={`/inmobiliaria/${owner.id}`}
-                className="mt-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800/40"
+                className="mt-3 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800/40"
               >
-                🏢 {owner.company}
-                <span className="ml-auto text-xs text-emerald-700">
-                  Ver inmobiliaria →
+                <span className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-white">
+                  {owner.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={owner.avatar_url}
+                      alt={owner.company ?? ""}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-emerald-700">🏠</span>
+                  )}
                 </span>
+                <span className="flex-1 text-base font-semibold capitalize text-emerald-800">
+                  {owner.company}
+                </span>
+                <span className="text-xs text-emerald-700">Ver →</span>
               </a>
             )}
 

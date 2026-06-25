@@ -6,6 +6,7 @@ import '../theme.dart';
 import '../services/supabase_service.dart';
 import '../services/app_events.dart';
 import 'admin_screen.dart';
+import 'crop_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -57,16 +58,22 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Future<void> _changeAvatar() async {
     final picked =
-        await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+        await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (picked == null) return;
     final user = supabase.auth.currentUser;
     if (user == null) return;
+    final original = await picked.readAsBytes();
+    if (!mounted) return;
+    // Ajustar la imagen al rectángulo
+    final Uint8List? cropped = await Navigator.push<Uint8List>(
+      context,
+      MaterialPageRoute(builder: (_) => CropScreen(image: original)),
+    );
+    if (cropped == null) return;
     setState(() => _uploadingAvatar = true);
     try {
-      final Uint8List bytes = await picked.readAsBytes();
-      final ext = picked.name.split('.').last.toLowerCase();
-      final url = await PropertyService.uploadImage(
-          user.id, bytes, ext == 'png' ? 'png' : 'jpg');
+      final url =
+          await PropertyService.uploadImage(user.id, cropped, 'jpg');
       await PropertyService.updateAvatar(url);
       bumpRefresh();
       if (mounted) setState(() => _avatarUrl = url);
@@ -166,10 +173,11 @@ class _AccountScreenState extends State<AccountScreen> {
                 Stack(
                   children: [
                     Container(
-                      width: 96,
-                      height: 96,
-                      decoration: const BoxDecoration(
-                          shape: BoxShape.circle, color: AppColors.primary),
+                      width: 150,
+                      height: 94,
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: AppColors.primary),
                       clipBehavior: Clip.antiAlias,
                       child: _uploadingAvatar
                           ? const Center(

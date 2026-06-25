@@ -16,6 +16,7 @@ class AgencyScreen extends StatefulWidget {
 
 class _AgencyScreenState extends State<AgencyScreen> {
   List<Property> _items = [];
+  String? _avatarUrl;
   bool _loading = true;
 
   @override
@@ -31,6 +32,9 @@ class _AgencyScreenState extends State<AgencyScreen> {
     }).catchError((_) {
       if (mounted) setState(() => _loading = false);
     });
+    PropertyService.profileById(widget.ownerId).then((p) {
+      if (mounted) setState(() => _avatarUrl = p?['avatar_url'] as String?);
+    }).catchError((_) {});
   }
 
   @override
@@ -51,17 +55,28 @@ class _AgencyScreenState extends State<AgencyScreen> {
                   color: Colors.white,
                   child: Row(
                     children: [
-                      const CircleAvatar(
-                        radius: 26,
-                        backgroundColor: AppColors.primary,
-                        child: Icon(Icons.apartment, color: Colors.white),
+                      Container(
+                        width: 84,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFFF1F1F3),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                            ? Image.network(_avatarUrl!, fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.apartment, color: AppColors.primary))
+                            : const Icon(Icons.apartment,
+                                color: AppColors.primary),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(widget.name,
+                            Text(titleCase(widget.name),
                                 style: const TextStyle(
                                     fontSize: 18, fontWeight: FontWeight.w800)),
                             Text('${_items.length} inmuebles publicados',

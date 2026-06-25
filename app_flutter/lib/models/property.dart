@@ -5,6 +5,14 @@ final _cop = NumberFormat.decimalPattern('es_CO');
 // Formato colombiano con el signo adelante: $2.000.000
 String formatPrice(num value) => '\$${_cop.format(value)}';
 
+/// Primera letra de cada palabra en mayúscula: "inmobiliaria gómez" -> "Inmobiliaria Gómez".
+String titleCase(String s) {
+  return s
+      .split(' ')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+}
+
 String _slugify(String s) {
   s = s.toLowerCase();
   const from = 'áàäâãéèëêíìïîóòöôõúùüûñç';
