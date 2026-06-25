@@ -204,13 +204,16 @@ class PropertyService {
     await supabase.from('property_images').delete().eq('id', imageId);
   }
 
-  /// Republicar: reactiva y renueva el vencimiento (30 días).
-  static Future<void> republish(String id, {int days = 30}) async {
+  /// Republicar: reactiva y renueva el vencimiento según el plan elegido.
+  static Future<void> republish(String id, Plan plan) async {
     final now = DateTime.now();
     await supabase.from('properties').update({
       'status': 'activo',
       'published_at': now.toIso8601String(),
-      'expires_at': now.add(Duration(days: days)).toIso8601String(),
+      'expires_at': now.add(Duration(days: plan.durationDays)).toIso8601String(),
+      'plan': plan.id,
+      'featured': plan.isFeatured,
+      'featured_at': plan.isFeatured ? now.toIso8601String() : null,
     }).eq('id', id);
   }
 

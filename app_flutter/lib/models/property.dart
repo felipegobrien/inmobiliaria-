@@ -164,6 +164,7 @@ class Property {
   final DateTime? expiresAt;
   final int viewsCount;
   final int ref;
+  final DateTime? publishedAt;
   final List<PropertyImage> images;
   final Owner? owner;
 
@@ -194,6 +195,7 @@ class Property {
     this.expiresAt,
     this.viewsCount = 0,
     this.ref = 0,
+    this.publishedAt,
     this.images = const [],
     this.owner,
   });
@@ -249,6 +251,9 @@ class Property {
           : null,
       viewsCount: (j['views_count'] as num?)?.toInt() ?? 0,
       ref: (j['ref'] as num?)?.toInt() ?? 0,
+      publishedAt: j['published_at'] != null
+          ? DateTime.tryParse(j['published_at'] as String)
+          : null,
       images: imgs,
       owner: ownerJson != null
           ? Owner.fromJson(ownerJson as Map<String, dynamic>)

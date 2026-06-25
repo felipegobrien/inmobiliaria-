@@ -42,7 +42,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     if (plan.price > 0) {
       final ok = await Navigator.push<bool>(
         context,
-        MaterialPageRoute(builder: (_) => _PaymentScreen(plan: plan)),
+        MaterialPageRoute(builder: (_) => PaymentScreen(plan: plan)),
       );
       if (ok != true) return;
     }
@@ -162,15 +162,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 }
 
 // Paso de pago (transferencia Bancolombia, manual por ahora).
-class _PaymentScreen extends StatefulWidget {
+class PaymentScreen extends StatefulWidget {
   final Plan plan;
-  const _PaymentScreen({required this.plan});
+  const PaymentScreen({super.key, required this.plan});
 
   @override
-  State<_PaymentScreen> createState() => _PaymentScreenState();
+  State<PaymentScreen> createState() => PaymentScreenState();
 }
 
-class _PaymentScreenState extends State<_PaymentScreen> {
+class PaymentScreenState extends State<PaymentScreen> {
   String _info = '';
   bool _loading = true;
 

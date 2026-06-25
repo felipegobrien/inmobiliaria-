@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import '../config.dart';
 import '../models/property.dart';
 import '../theme.dart';
@@ -333,6 +334,15 @@ class _DetailScreenState extends State<DetailScreen> {
                       .join(', '),
                   style: const TextStyle(color: AppColors.textMuted),
                 ),
+                if (p.publishedAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Publicado el ${DateFormat('d MMM y', 'es').format(p.publishedAt!.toLocal())} · Cód. ${p.ref}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textMuted),
+                    ),
+                  ),
                 const SizedBox(height: 14),
                 Text(
                   formatPrice(p.price) + (p.operation != 'venta' ? '/mes' : ''),

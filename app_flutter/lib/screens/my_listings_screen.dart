@@ -5,6 +5,7 @@ import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
 import 'detail_screen.dart';
+import 'plan_selection_screen.dart';
 
 class MyListingsScreen extends StatefulWidget {
   const MyListingsScreen({super.key});
@@ -15,6 +16,7 @@ class MyListingsScreen extends StatefulWidget {
 
 class _MyListingsScreenState extends State<MyListingsScreen> {
   List<(Property, int)> _items = [];
+  List<Plan> _plans = [];
   bool _loading = true;
   String _query = '';
 
@@ -33,6 +35,9 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   void initState() {
     super.initState();
     _load();
+    PropertyService.plans().then((p) {
+      if (mounted) setState(() => _plans = p);
+    }).catchError((_) {});
   }
 
   Future<void> _load() async {
@@ -415,11 +420,90 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   }
 
   Future<void> _republish(Property p) async {
+    // 1) Elegir plan
+    final plan = await showModalBottomSheet<Plan>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Republicar — elige el plan',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            for (final pl in _plans)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: InkWell(
+                  onTap: () => Navigator.pop(context, pl),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: pl.isFeatured
+                              ? const Color(0xFFFDE68A)
+                              : AppColors.border,
+                          width: pl.isFeatured ? 2 : 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(pl.isFeatured ? Icons.star : Icons.check_circle,
+                            color: pl.isFeatured
+                                ? const Color(0xFFD97706)
+                                : AppColors.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(pl.name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700)),
+                              Text('${pl.durationDays} días',
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textMuted)),
+                            ],
+                          ),
+                        ),
+                        Text(pl.price == 0 ? 'Gratis' : formatPrice(pl.price),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primaryDark)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (plan == null || !mounted) return;
+
+    // 2) Si es de pago, ir a la pantalla de pago
+    if (plan.price > 0) {
+      final paid = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => PaymentScreen(plan: plan)),
+      );
+      if (paid != true) return;
+    }
+
+    // 3) Republicar con el plan elegido
     try {
-      await PropertyService.republish(p.id);
+      await PropertyService.republish(p.id, plan);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Publicación renovada por 30 días.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'Publicación renovada (${plan.name}) por ${plan.durationDays} días.')));
       }
       _load();
     } catch (e) {
