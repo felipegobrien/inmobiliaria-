@@ -5,4 +5,7 @@ class Config {
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViZHZoZGNqd2RwYWJobmtiaGpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNjUwNjAsImV4cCI6MjA5Nzg0MTA2MH0.4RKwnmEdUr0xEayWQI9fsgxJIW6co6DVGY5PgbnSP3o';
 
   static const propertyImagesBucket = 'property-images';
+
+  // URL pública de la web (para compartir inmuebles).
+  static const siteUrl = 'https://inmobiliaria-web-blush.vercel.app';
 }

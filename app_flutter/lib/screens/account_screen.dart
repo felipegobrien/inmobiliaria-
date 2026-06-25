@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
 import 'admin_screen.dart';
-import 'my_listings_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -140,26 +139,6 @@ class _AccountScreenState extends State<AccountScreen> {
                 Text(user.email ?? '',
                     style: const TextStyle(color: AppColors.textMuted)),
                 const SizedBox(height: 28),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const MyListingsScreen()),
-                    ),
-                    icon: const Icon(Icons.dashboard_outlined),
-                    label: const Text('Mis publicaciones'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryDark,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 28, vertical: 13),
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
                 if (_role == 'admin')
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),

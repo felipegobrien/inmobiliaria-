@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
+import '../config.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
@@ -222,6 +224,16 @@ class _DetailScreenState extends State<DetailScreen> {
         foregroundColor: AppColors.primaryDark,
         backgroundColor: Colors.white,
         actions: [
+          IconButton(
+            tooltip: 'Compartir',
+            onPressed: () {
+              final url = '${Config.siteUrl}/inmueble/${propertySlug(p)}';
+              SharePlus.instance.share(
+                ShareParams(text: '${p.title}\n$url'),
+              );
+            },
+            icon: const Icon(Icons.share_outlined, color: AppColors.primaryDark),
+          ),
           if (isOwner)
             IconButton(
               tooltip: 'Editar',

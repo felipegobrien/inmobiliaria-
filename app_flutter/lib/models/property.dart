@@ -8,6 +8,26 @@ final _cop = NumberFormat.currency(
 
 String formatPrice(num value) => _cop.format(value);
 
+String _slugify(String s) {
+  s = s.toLowerCase();
+  const from = 'áàäâãéèëêíìïîóòöôõúùüûñç';
+  const to = 'aaaaaeeeeiiiiooooouuuunc';
+  for (var i = 0; i < from.length; i++) {
+    s = s.replaceAll(from[i], to[i]);
+  }
+  return s
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+}
+
+String propertySlug(Property p) {
+  final opWord = p.operation == 'arriendo' ? 'en arriendo' : 'en venta';
+  final words = [typeLabels[p.type] ?? p.type, opWord, p.neighborhood ?? '', p.city]
+      .where((e) => e.isNotEmpty)
+      .join(' ');
+  return '${_slugify(words)}-${p.ref}';
+}
+
 const operationLabels = {
   'venta': 'En venta',
   'arriendo': 'En arriendo',
@@ -143,6 +163,7 @@ class Property {
   final String plan;
   final DateTime? expiresAt;
   final int viewsCount;
+  final int ref;
   final List<PropertyImage> images;
   final Owner? owner;
 
@@ -172,6 +193,7 @@ class Property {
     this.plan = 'estandar',
     this.expiresAt,
     this.viewsCount = 0,
+    this.ref = 0,
     this.images = const [],
     this.owner,
   });
@@ -226,6 +248,7 @@ class Property {
           ? DateTime.tryParse(j['expires_at'] as String)
           : null,
       viewsCount: (j['views_count'] as num?)?.toInt() ?? 0,
+      ref: (j['ref'] as num?)?.toInt() ?? 0,
       images: imgs,
       owner: ownerJson != null
           ? Owner.fromJson(ownerJson as Map<String, dynamic>)

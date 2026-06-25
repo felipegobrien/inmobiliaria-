@@ -3,6 +3,7 @@ import '../theme.dart';
 import 'search_screen.dart';
 import 'favorites_screen.dart';
 import 'plan_selection_screen.dart';
+import 'my_listings_screen.dart';
 import 'account_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
     SearchScreen(),
     FavoritesScreen(),
     PlanSelectionScreen(),
+    MyListingsScreen(),
     AccountScreen(),
   ];
 
@@ -44,6 +46,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.add_circle_outline),
             selectedIcon: Icon(Icons.add_circle, color: AppColors.primary),
             label: 'Publicar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard, color: AppColors.primary),
+            label: 'Mis avisos',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
