@@ -144,6 +144,13 @@ class _PropertyCardState extends State<PropertyCard> {
                     },
                   ),
                 ),
+                // Logo de la inmobiliaria superpuesto (abajo, sobre la foto)
+                if (property.owner?.isAgency ?? false)
+                  Positioned(
+                    left: 12,
+                    bottom: 10,
+                    child: _agencyLogo(property.owner!),
+                  ),
                 // Indicador de fotos (puntos)
                 if (images.length > 1)
                   Positioned(
@@ -182,22 +189,14 @@ class _PropertyCardState extends State<PropertyCard> {
                   color: Color(0xFFF1F5F4),
                   border: Border(bottom: BorderSide(color: Color(0xFFEAEAED))),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        titleCase(property.owner!.company!),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryDark),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _agencyLogo(property.owner!),
-                  ],
+                child: Text(
+                  titleCase(property.owner!.company!),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primaryDark),
                 ),
               ),
 
@@ -273,12 +272,16 @@ class _PropertyCardState extends State<PropertyCard> {
 
   Widget _agencyLogo(Owner owner) {
     return Container(
-      width: 64,
-      height: 40,
+      width: 70,
+      height: 44,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         color: Colors.white,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25), blurRadius: 6),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: (owner.avatarUrl != null && owner.avatarUrl!.isNotEmpty)

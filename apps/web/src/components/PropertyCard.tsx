@@ -44,15 +44,10 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
           propertyId={property.id}
           className="absolute right-3 top-3"
         />
-      </div>
-
-      {property.owner?.role === "inmobiliaria" && property.owner.company && (
-        <div className="flex items-center gap-2 border-b border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800/40">
-          <span className="flex-1 truncate text-base font-semibold capitalize text-emerald-800 dark:text-emerald-300">
-            {property.owner.company}
-          </span>
-          {property.owner.avatar_url && (
-            <span className="flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-white">
+        {property.owner?.role === "inmobiliaria" &&
+          property.owner.company &&
+          property.owner.avatar_url && (
+            <span className="absolute bottom-3 left-3 flex h-11 w-[70px] items-center justify-center overflow-hidden rounded-lg border-2 border-white bg-white shadow-md">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={property.owner.avatar_url}
@@ -61,6 +56,13 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
               />
             </span>
           )}
+      </div>
+
+      {property.owner?.role === "inmobiliaria" && property.owner.company && (
+        <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800/40">
+          <span className="block truncate text-base font-semibold capitalize text-emerald-800 dark:text-emerald-300">
+            {property.owner.company}
+          </span>
         </div>
       )}
 
