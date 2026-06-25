@@ -332,12 +332,33 @@ class PropertyService {
       'role': 'inmobiliaria',
       'company': req['company'],
       'verified': true,
+      'agency_slug': await _uniqueAgencySlug(
+          slugify(req['company']?.toString() ?? 'inmobiliaria'),
+          req['user_id']),
     };
     if (promoDays != null && promoDays > 0) {
       update['agency_promo_until'] =
           DateTime.now().add(Duration(days: promoDays)).toIso8601String();
     }
     await supabase.from('profiles').update(update).eq('id', req['user_id']);
+  }
+
+  /// Genera un slug único para la inmobiliaria (agrega -2, -3… si ya existe).
+  static Future<String> _uniqueAgencySlug(String base, String userId) async {
+    if (base.isEmpty) base = 'inmobiliaria';
+    var slug = base;
+    var n = 1;
+    while (true) {
+      final existing = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('agency_slug', slug)
+          .neq('id', userId)
+          .maybeSingle();
+      if (existing == null) return slug;
+      n++;
+      slug = '$base-$n';
+    }
   }
 
   static Future<void> rejectAgency(String id) async {

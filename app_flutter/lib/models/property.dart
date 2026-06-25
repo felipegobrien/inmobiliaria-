@@ -13,6 +13,8 @@ String titleCase(String s) {
       .join(' ');
 }
 
+String slugify(String s) => _slugify(s);
+
 String _slugify(String s) {
   s = s.toLowerCase();
   const from = 'áàäâãéèëêíìïîóòöôõúùüûñç';

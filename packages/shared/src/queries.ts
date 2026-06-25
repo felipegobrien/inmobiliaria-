@@ -308,7 +308,7 @@ export async function getProperty(
 ): Promise<PropertyWithImages | null> {
   const { data, error } = await supabase
     .from('properties')
-    .select('*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified, role)')
+    .select('*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified, role, agency_slug)')
     .eq('id', id)
     .single();
   if (error) {
@@ -321,7 +321,7 @@ export async function getProperty(
 }
 
 const DETAIL_SELECT =
-  '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified, role)';
+  '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified, role, agency_slug)';
 
 /** Obtener un inmueble por su número de referencia (para URLs amigables). */
 export async function getPropertyByRef(
@@ -456,6 +456,7 @@ export async function approveAgency(
     role: 'inmobiliaria',
     company: request.company,
     verified: true,
+    agency_slug: slugify(request.company),
   };
   if (promoDays && promoDays > 0) {
     update.agency_promo_until = new Date(
@@ -478,6 +479,31 @@ export async function rejectAgency(
     .update({ status: 'rechazada' })
     .eq('id', requestId);
   if (error) throw error;
+}
+
+/** Buscar inmobiliaria por slug o por id (uuid). Devuelve perfil público. */
+export async function getAgencyByParam(
+  supabase: SupabaseClient,
+  param: string,
+): Promise<{
+  id: string;
+  full_name: string | null;
+  company: string | null;
+  verified: boolean;
+  role: string;
+  avatar_url: string | null;
+} | null> {
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      param,
+    );
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, company, verified, role, avatar_url')
+    .eq(isUuid ? 'id' : 'agency_slug', param)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) ?? null;
 }
 
 /** Inmuebles activos de una inmobiliaria (para su página). */

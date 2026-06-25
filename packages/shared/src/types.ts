@@ -35,6 +35,7 @@ export interface Profile {
   company: string | null;
   verified: boolean;
   agency_promo_until: string | null;
+  agency_slug: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -104,7 +105,7 @@ export interface Property {
 // Inmueble con sus relaciones (lo que normalmente muestra la UI)
 export interface PropertyWithImages extends Property {
   property_images: PropertyImage[];
-  owner?: Pick<Profile, 'id' | 'full_name' | 'phone' | 'whatsapp' | 'avatar_url' | 'company' | 'verified' | 'role'>;
+  owner?: Pick<Profile, 'id' | 'full_name' | 'phone' | 'whatsapp' | 'avatar_url' | 'company' | 'verified' | 'role' | 'agency_slug'>;
   property_amenities?: { amenity_id: number }[];
 }
 

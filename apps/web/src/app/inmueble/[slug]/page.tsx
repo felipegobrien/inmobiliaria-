@@ -159,7 +159,7 @@ export default async function PropertyDetailPage({
             )}
             {owner?.role === "inmobiliaria" && owner.company && (
               <a
-                href={`/inmobiliaria/${owner.id}`}
+                href={`/inmobiliaria/${owner.agency_slug ?? owner.id}`}
                 className="mt-3 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800/40"
               >
                 <span className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-white">

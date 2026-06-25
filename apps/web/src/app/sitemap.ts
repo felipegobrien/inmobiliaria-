@@ -56,5 +56,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
+  // Páginas de cada inmobiliaria (slug amigable)
+  const { data: agencies } = await supabase
+    .from("profiles")
+    .select("agency_slug, updated_at")
+    .eq("role", "inmobiliaria")
+    .not("agency_slug", "is", null);
+  for (const a of (agencies ?? []) as {
+    agency_slug: string;
+    updated_at: string;
+  }[]) {
+    urls.push({
+      url: `${SITE_URL}/inmobiliaria/${a.agency_slug}`,
+      lastModified: a.updated_at,
+      changeFrequency: "weekly",
+      priority: 0.5,
+    });
+  }
+
   return urls;
 }

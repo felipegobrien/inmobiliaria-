@@ -1,61 +1,43 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getAgencyProperties } from "@inmo/shared";
+import { getAgencyByParam, getAgencyProperties, slugify } from "@inmo/shared";
 import { getServerSupabase, SITE_URL } from "@/lib/supabase-server";
 import { Header } from "@/components/Header";
 import { PropertyCard } from "@/components/PropertyCard";
 
 export const revalidate = 60;
 
-async function getAgency(id: string) {
-  const supabase = getServerSupabase();
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, full_name, company, verified, role, avatar_url")
-    .eq("id", id)
-    .maybeSingle();
-  return data as
-    | {
-        id: string;
-        full_name: string | null;
-        company: string | null;
-        verified: boolean;
-        role: string;
-        avatar_url: string | null;
-      }
-    | null;
-}
-
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
-  const a = await getAgency(id);
+  const { slug } = await params;
+  const supabase = getServerSupabase();
+  const a = await getAgencyByParam(supabase, slug).catch(() => null);
   if (!a) return { title: "Inmobiliaria" };
   const name = a.company ?? a.full_name ?? "Inmobiliaria";
+  const canonical = `/inmobiliaria/${a.company ? slugify(a.company) : a.id}`;
   return {
     title: `${name} — Inmuebles`,
     description: `Mira todos los inmuebles publicados por ${name} en venta y arriendo.`,
-    alternates: { canonical: `/inmobiliaria/${id}` },
-    openGraph: { title: `${name} — Inmuebles`, url: `${SITE_URL}/inmobiliaria/${id}` },
+    alternates: { canonical },
+    openGraph: { title: `${name} — Inmuebles`, url: `${SITE_URL}${canonical}` },
   };
 }
 
 export default async function AgencyPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = getServerSupabase();
-  const [agency, properties] = await Promise.all([
-    getAgency(id),
-    getAgencyProperties(supabase, id).catch(() => []),
-  ]);
-
+  const agency = await getAgencyByParam(supabase, slug).catch(() => null);
   if (!agency) notFound();
+  const properties = await getAgencyProperties(supabase, agency.id).catch(
+    () => [],
+  );
   const name = agency.company ?? agency.full_name ?? "Inmobiliaria";
 
   return (
