@@ -23,7 +23,7 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
           <img
             src={cover}
             alt={property.title}
-            className="h-full w-full object-cover transition group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover transition group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-zinc-400">
