@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +20,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   List<Plan> _plans = [];
   bool _loading = true;
   String _query = '';
+  StreamSubscription? _authSub;
 
   List<(Property, int)> get _filtered {
     final q = _query.trim().toLowerCase();
@@ -38,14 +40,30 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     PropertyService.plans().then((p) {
       if (mounted) setState(() => _plans = p);
     }).catchError((_) {});
+    // Recargar al iniciar/cerrar sesión (la pestaña vive en segundo plano).
+    _authSub = supabase.auth.onAuthStateChange.listen((_) {
+      if (mounted) _load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
     final user = supabase.auth.currentUser;
     if (user == null) {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _items = [];
+          _loading = false;
+        });
+      }
       return;
     }
+    setState(() => _loading = true);
     try {
       final data = await PropertyService.myPropertiesWithStats(user.id);
       if (mounted) {
