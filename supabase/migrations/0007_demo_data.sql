@@ -20,7 +20,7 @@ select
   'Cómodo ' || t.typ || ' ubicado en ' || b.barrio || ', ' || c.city
     || '. Excelente ubicación, cerca de transporte público, centros comerciales y zonas verdes. '
     || 'Espacios iluminados y bien distribuidos. Ideal para vivir o invertir.',
-  o.op, t.typ, 'activo',
+  o.op::operation_type, t.typ::property_type, 'activo'::property_status,
   case when o.op = 'arriendo'
        then (800000 + floor(random() * 4500000)::bigint)
        else (150000000 + floor(random() * 850000000)::bigint) end,
