@@ -311,7 +311,9 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(formatPrice(p.price),
+                Text(
+                    formatPrice(p.price) +
+                        (p.operation != 'venta' ? '/mes' : ''),
                     style: const TextStyle(
                         color: AppColors.primaryDark,
                         fontWeight: FontWeight.w800,
