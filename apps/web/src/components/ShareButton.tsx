@@ -12,7 +12,9 @@ export function ShareButton({ title }: { title: string }) {
   const nativeShare = async () => {
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title, url });
+        // Incluimos el enlace dentro del texto para que WhatsApp genere
+        // la vista previa (foto + descripción), no solo el link pelado.
+        await navigator.share({ title, text: `${title}\n${url}` });
         return;
       } catch {
         /* cancelado */
