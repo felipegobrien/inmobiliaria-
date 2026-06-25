@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   Amenity,
+  Plan,
   Property,
   PropertyFilters,
   PropertyWithImages,
@@ -241,6 +242,27 @@ export async function getMyProperties(
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as PropertyWithImages[];
+}
+
+/** Planes de publicación. */
+export async function getPlans(supabase: SupabaseClient): Promise<Plan[]> {
+  const { data, error } = await supabase.from('plans').select('*').order('sort');
+  if (error) throw error;
+  return (data ?? []) as Plan[];
+}
+
+/** Leer un ajuste de la app (ej. datos de pago). */
+export async function getSetting(
+  supabase: SupabaseClient,
+  key: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', key)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.value as string | undefined) ?? null;
 }
 
 /** Catálogo de amenidades (características). */

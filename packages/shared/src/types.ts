@@ -114,6 +114,16 @@ export interface PropertyFilters {
   pageSize?: number;
 }
 
+export interface Plan {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  duration_days: number;
+  is_featured: boolean;
+  sort: number;
+}
+
 export type AmenityCategory =
   | 'interiores'
   | 'zonas_comunes'

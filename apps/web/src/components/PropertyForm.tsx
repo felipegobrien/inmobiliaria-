@@ -17,6 +17,7 @@ import {
   type Amenity,
   type AmenityCategory,
   type OperationType,
+  type Plan,
   type PropertyType,
   type PropertyInput,
   type PropertyWithImages,
@@ -36,9 +37,11 @@ const CATEGORY_ORDER: AmenityCategory[] = [
 export function PropertyForm({
   userId,
   initial,
+  plan,
 }: {
   userId: string;
   initial?: PropertyWithImages;
+  plan?: Plan;
 }) {
   const router = useRouter();
   const isEdit = !!initial;
@@ -148,6 +151,17 @@ export function PropertyForm({
         address: form.address || null,
         nearby_places: nearbyPlaces,
       };
+
+      // Plan elegido (solo al crear): define destacado y vencimiento.
+      if (!isEdit && plan) {
+        const now = new Date();
+        payload.plan = plan.id;
+        payload.featured = plan.is_featured;
+        payload.featured_at = plan.is_featured ? now.toISOString() : null;
+        payload.expires_at = new Date(
+          now.getTime() + plan.duration_days * 86400000,
+        ).toISOString();
+      }
 
       const amenityIds = Array.from(selectedAmenities);
       let id: string;
@@ -335,7 +349,7 @@ export function PropertyForm({
       </div>
 
       {/* Características */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
           Características del inmueble
         </p>
@@ -343,28 +357,28 @@ export function PropertyForm({
           const items = byCategory(cat);
           if (!items.length) return null;
           return (
-            <div key={cat}>
-              <p className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+            <div
+              key={cat}
+              className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+            >
+              <p className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                 {AMENITY_CATEGORY_LABELS[cat]}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {items.map((a) => {
-                  const active = selectedAmenities.has(a.id);
-                  return (
-                    <button
-                      key={a.id}
-                      type="button"
-                      onClick={() => toggleAmenity(a.id)}
-                      className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                        active
-                          ? "border-emerald-700 bg-emerald-700 text-white"
-                          : "border-zinc-300 text-zinc-700 hover:border-emerald-600 dark:border-zinc-700 dark:text-zinc-300"
-                      }`}
-                    >
-                      {a.name}
-                    </button>
-                  );
-                })}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3">
+                {items.map((a) => (
+                  <label
+                    key={a.id}
+                    className="flex cursor-pointer items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedAmenities.has(a.id)}
+                      onChange={() => toggleAmenity(a.id)}
+                      className="h-4 w-4 shrink-0 accent-emerald-700"
+                    />
+                    <span>{a.name}</span>
+                  </label>
+                ))}
               </div>
             </div>
           );
