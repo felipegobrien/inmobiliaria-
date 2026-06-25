@@ -176,41 +176,41 @@ export default function MisInmueblesPage() {
                   className="flex flex-col rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
                 >
                   <PropertyCard property={p} />
-                  <div className="flex flex-col gap-2 border-t border-zinc-100 p-3 dark:border-zinc-800">
-                    <div className="flex items-center justify-between text-xs">
+                  <div className="flex flex-col gap-3 border-t border-zinc-100 p-3 dark:border-zinc-800">
+                    <div className="flex items-center justify-between text-sm">
                       <span className="text-zinc-500">
                         👁 {p.views_count ?? 0} · ✉ {p.contacts}
                       </span>
-                      <span className={exp.cls}>{exp.text}</span>
+                      <span className={`font-medium ${exp.cls}`}>
+                        {exp.text}
+                      </span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <button
                         onClick={() => openLeads(p.id)}
-                        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300"
+                        className="rounded-lg border border-zinc-300 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300"
                       >
-                        Ver contactos
+                        Contactos
                       </button>
                       <button
                         onClick={() => startRepublish(p)}
-                        className="rounded-lg border border-emerald-700 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                        className="rounded-lg border border-emerald-700 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950"
                       >
                         Republicar
                       </button>
                       {closed ? (
                         <button
                           onClick={() => reactivate(p)}
-                          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300"
+                          className="rounded-lg border border-zinc-300 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300"
                         >
                           Reactivar
                         </button>
                       ) : (
                         <button
                           onClick={() => markClosed(p)}
-                          className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-800"
+                          className="rounded-lg bg-emerald-700 py-2 text-sm font-medium text-white hover:bg-emerald-800"
                         >
-                          {p.operation === "arriendo"
-                            ? "Marcar arrendado"
-                            : "Marcar vendido"}
+                          {p.operation === "arriendo" ? "Arrendado" : "Vendido"}
                         </button>
                       )}
                     </div>

@@ -261,18 +261,18 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
           GestureDetector(
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => DetailScreen(propertyId: p.id))),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: SizedBox(
-                    width: 76,
-                    height: 76,
+                  borderRadius: BorderRadius.circular(12),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 10,
                     child: p.coverUrl != null
                         ? CachedNetworkImage(
                             imageUrl: p.coverUrl!,
                             fit: BoxFit.cover,
+                            width: double.infinity,
                             placeholder: (_, __) =>
                                 Container(color: const Color(0xFFF1F1F3)),
                             errorWidget: (_, __, ___) => Container(
@@ -285,42 +285,37 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                             child: const Icon(Icons.home, color: Colors.grey)),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(p.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on_outlined,
-                              size: 14, color: AppColors.textMuted),
-                          const SizedBox(width: 2),
-                          Expanded(
-                            child: Text(
-                              [p.neighborhood, p.city]
-                                  .where((e) => e != null && e.isNotEmpty)
-                                  .join(', '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 13, color: AppColors.textMuted),
-                            ),
-                          ),
-                        ],
+                const SizedBox(height: 10),
+                Text(p.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 15)),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_outlined,
+                        size: 15, color: AppColors.textMuted),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        [p.neighborhood, p.city]
+                            .where((e) => e != null && e.isNotEmpty)
+                            .join(', '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 13, color: AppColors.textMuted),
                       ),
-                      const SizedBox(height: 2),
-                      Text(formatPrice(p.price),
-                          style: const TextStyle(
-                              color: AppColors.primaryDark,
-                              fontWeight: FontWeight.w700)),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 2),
+                Text(formatPrice(p.price),
+                    style: const TextStyle(
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16)),
               ],
             ),
           ),

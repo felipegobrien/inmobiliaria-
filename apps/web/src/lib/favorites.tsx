@@ -42,24 +42,17 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     async (propertyId: string) => {
       if (!user) return;
       const currentlyFav = ids.has(propertyId);
-      // Optimista
-      setIds((prev) => {
-        const next = new Set(prev);
-        if (currentlyFav) next.delete(propertyId);
-        else next.add(propertyId);
-        return next;
-      });
       try {
+        // Guardar primero, luego actualizar (evita carreras al recargar la lista).
         await toggleFavorite(supabase, user.id, propertyId, currentlyFav);
-      } catch (e) {
-        console.error(e);
-        // Revertir si falla
         setIds((prev) => {
           const next = new Set(prev);
-          if (currentlyFav) next.add(propertyId);
-          else next.delete(propertyId);
+          if (currentlyFav) next.delete(propertyId);
+          else next.add(propertyId);
           return next;
         });
+      } catch (e) {
+        console.error(e);
       }
     },
     [user, ids],

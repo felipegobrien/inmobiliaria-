@@ -28,17 +28,15 @@ class FavoritesManager {
     final user = supabase.auth.currentUser;
     if (user == null) return;
     final wasFav = ids.value.contains(propertyId);
-    // Optimista
-    final next = Set<String>.from(ids.value);
-    wasFav ? next.remove(propertyId) : next.add(propertyId);
-    ids.value = next;
     try {
+      // Guardar PRIMERO en la base, y luego actualizar los ids.
+      // Así la lista de favoritos se recarga cuando el cambio ya está guardado.
       await PropertyService.toggleFavorite(user.id, propertyId, wasFav);
+      final next = Set<String>.from(ids.value);
+      wasFav ? next.remove(propertyId) : next.add(propertyId);
+      ids.value = next;
     } catch (_) {
-      // Revertir
-      final revert = Set<String>.from(ids.value);
-      wasFav ? revert.add(propertyId) : revert.remove(propertyId);
-      ids.value = revert;
+      // Si falla, no cambiamos nada.
     }
   }
 }
