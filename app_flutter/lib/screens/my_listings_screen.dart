@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/property.dart';
@@ -15,6 +16,18 @@ class MyListingsScreen extends StatefulWidget {
 class _MyListingsScreenState extends State<MyListingsScreen> {
   List<(Property, int)> _items = [];
   bool _loading = true;
+  String _query = '';
+
+  List<(Property, int)> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _items;
+    return _items.where((e) {
+      final p = e.$1;
+      return p.title.toLowerCase().contains(q) ||
+          (p.neighborhood ?? '').toLowerCase().contains(q) ||
+          p.city.toLowerCase().contains(q);
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -153,7 +166,34 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    for (final e in _items) _listingTile(e.$1, e.$2),
+                    TextField(
+                      onChanged: (v) => setState(() => _query = v),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar en mis publicaciones…',
+                        prefixIcon: const Icon(Icons.search,
+                            color: AppColors.textMuted),
+                        filled: true,
+                        fillColor: const Color(0xFFF1F1F3),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    for (final e in _filtered) _listingTile(e.$1, e.$2),
+                    if (_filtered.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 30),
+                        child: Center(
+                          child: Text('Sin resultados.',
+                              style: TextStyle(color: AppColors.textMuted)),
+                        ),
+                      ),
                   ],
                 ),
     );
@@ -198,13 +238,70 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
           GestureDetector(
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => DetailScreen(propertyId: p.id))),
-            child: Text(p.title,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: 76,
+                    height: 76,
+                    child: p.coverUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: p.coverUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) =>
+                                Container(color: const Color(0xFFF1F1F3)),
+                            errorWidget: (_, __, ___) => Container(
+                                color: const Color(0xFFF1F1F3),
+                                child: const Icon(Icons.image,
+                                    color: Colors.grey)),
+                          )
+                        : Container(
+                            color: const Color(0xFFF1F1F3),
+                            child: const Icon(Icons.home, color: Colors.grey)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(p.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined,
+                              size: 14, color: AppColors.textMuted),
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Text(
+                              [p.neighborhood, p.city]
+                                  .where((e) => e != null && e.isNotEmpty)
+                                  .join(', '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 13, color: AppColors.textMuted),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(formatPrice(p.price),
+                          style: const TextStyle(
+                              color: AppColors.primaryDark,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          Text(formatPrice(p.price),
-              style: const TextStyle(
-                  color: AppColors.primaryDark, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
             children: [
               const Icon(Icons.remove_red_eye_outlined,
