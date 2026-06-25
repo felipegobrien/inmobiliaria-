@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getMyPropertiesWithStats, type PropertyWithImages } from "@inmo/shared";
+import {
+  getMyPropertiesWithStats,
+  getInquiries,
+  type Inquiry,
+  type PropertyWithImages,
+} from "@inmo/shared";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/Header";
@@ -16,9 +21,24 @@ export default function MisInmueblesPage() {
     (PropertyWithImages & { contacts: number })[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [leadsFor, setLeadsFor] = useState<string | null>(null);
+  const [leads, setLeads] = useState<Inquiry[]>([]);
+  const [leadsLoading, setLeadsLoading] = useState(false);
 
   const totalViews = items.reduce((s, p) => s + (p.views_count ?? 0), 0);
   const totalContacts = items.reduce((s, p) => s + p.contacts, 0);
+
+  const openLeads = async (propertyId: string) => {
+    setLeadsFor(propertyId);
+    setLeadsLoading(true);
+    try {
+      setLeads(await getInquiries(supabase, propertyId));
+    } catch {
+      setLeads([]);
+    } finally {
+      setLeadsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -74,15 +94,86 @@ export default function MisInmueblesPage() {
                   {p.status}
                 </span>
                 <PropertyCard property={p} />
-                <div className="mt-1 flex gap-4 px-1 text-xs text-zinc-500">
+                <div className="mt-1 flex items-center gap-4 px-1 text-xs text-zinc-500">
                   <span>👁 {p.views_count ?? 0} vistas</span>
                   <span>✉ {p.contacts} contactos</span>
+                  <button
+                    onClick={() => openLeads(p.id)}
+                    className="ml-auto font-medium text-emerald-700 hover:underline"
+                  >
+                    Ver contactos
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </main>
+
+      {leadsFor && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+          onClick={() => setLeadsFor(null)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-lg overflow-auto rounded-t-2xl bg-white p-5 dark:bg-zinc-900 sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+                Contactos recibidos
+              </h2>
+              <button
+                onClick={() => setLeadsFor(null)}
+                className="text-zinc-400 hover:text-zinc-700"
+              >
+                ✕
+              </button>
+            </div>
+            {leadsLoading ? (
+              <p className="text-zinc-500">Cargando…</p>
+            ) : leads.length === 0 ? (
+              <p className="py-8 text-center text-zinc-500">
+                Aún no tienes contactos en este inmueble.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {leads.map((l) => (
+                  <div
+                    key={l.id}
+                    className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800"
+                  >
+                    <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+                      {l.name}
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-x-4 text-sm text-zinc-600 dark:text-zinc-400">
+                      {l.phone && (
+                        <a href={`tel:${l.phone}`} className="hover:underline">
+                          📞 {l.phone}
+                        </a>
+                      )}
+                      {l.email && (
+                        <a
+                          href={`mailto:${l.email}`}
+                          className="hover:underline"
+                        >
+                          ✉️ {l.email}
+                        </a>
+                      )}
+                    </div>
+                    {l.message && (
+                      <p className="mt-1 text-sm text-zinc-500">{l.message}</p>
+                    )}
+                    <p className="mt-1 text-xs text-zinc-400">
+                      {new Date(l.created_at).toLocaleString("es-CO")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

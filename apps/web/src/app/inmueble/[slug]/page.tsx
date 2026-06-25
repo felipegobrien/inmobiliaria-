@@ -18,6 +18,7 @@ import { Gallery } from "@/components/Gallery";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { OwnerActions } from "@/components/OwnerActions";
 import { ContactPanel } from "@/components/ContactPanel";
+import { ShareButton } from "@/components/ShareButton";
 
 export const revalidate = 60; // re-genera cada minuto
 
@@ -131,7 +132,10 @@ export default async function PropertyDetailPage({
                   {OPERATION_LABELS[property.operation]}
                 </span>
               </div>
-              <FavoriteButton propertyId={property.id} />
+              <div className="flex items-center gap-2">
+                <ShareButton title={property.title} />
+                <FavoriteButton propertyId={property.id} />
+              </div>
             </div>
 
             <h1 className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
