@@ -119,18 +119,31 @@ class PropertyImage {
 }
 
 class Owner {
+  final String? id;
   final String? fullName;
   final String? phone;
   final String? whatsapp;
   final String? company;
+  final String? role;
 
-  Owner({this.fullName, this.phone, this.whatsapp, this.company});
+  Owner({
+    this.id,
+    this.fullName,
+    this.phone,
+    this.whatsapp,
+    this.company,
+    this.role,
+  });
+
+  bool get isAgency => role == 'inmobiliaria' && (company?.isNotEmpty ?? false);
 
   factory Owner.fromJson(Map<String, dynamic> j) => Owner(
+        id: j['id'] as String?,
         fullName: j['full_name'] as String?,
         phone: j['phone'] as String?,
         whatsapp: j['whatsapp'] as String?,
         company: j['company'] as String?,
+        role: j['role'] as String?,
       );
 }
 

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
+  AgencyRequest,
   Amenity,
   Inquiry,
   Plan,
@@ -143,7 +144,10 @@ export async function searchProperties(
 
   let query = supabase
     .from('properties')
-    .select('*, property_images(*)', { count: 'exact' })
+    .select(
+      '*, property_images(*), owner:profiles!properties_owner_id_fkey(id, full_name, company, role, verified)',
+      { count: 'exact' },
+    )
     .eq('status', 'activo')
     .or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`);
 
@@ -304,7 +308,7 @@ export async function getProperty(
 ): Promise<PropertyWithImages | null> {
   const { data, error } = await supabase
     .from('properties')
-    .select('*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified)')
+    .select('*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified, role)')
     .eq('id', id)
     .single();
   if (error) {
@@ -317,7 +321,7 @@ export async function getProperty(
 }
 
 const DETAIL_SELECT =
-  '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified)';
+  '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified, role)';
 
 /** Obtener un inmueble por su número de referencia (para URLs amigables). */
 export async function getPropertyByRef(
@@ -381,6 +385,113 @@ export async function getMyProperties(
     .select('*, property_images(*)')
     .eq('owner_id', ownerId)
     .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as PropertyWithImages[];
+}
+
+// ---- Inmobiliarias (agencias) ----
+
+/** ¿La promo de inmobiliaria de este perfil está vigente? */
+export function isAgencyPromoActive(promoUntil: string | null): boolean {
+  return !!promoUntil && new Date(promoUntil).getTime() > Date.now();
+}
+
+/** Perfil (rol, empresa, promo) por id. */
+export async function getProfile(
+  supabase: SupabaseClient,
+  id: string,
+): Promise<{
+  role: string;
+  company: string | null;
+  agency_promo_until: string | null;
+} | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('role, company, agency_promo_until')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) ?? null;
+}
+
+/** Crear solicitud para registrarse como inmobiliaria. */
+export async function createAgencyRequest(
+  supabase: SupabaseClient,
+  input: {
+    user_id: string;
+    company: string;
+    nit?: string | null;
+    phone?: string | null;
+    city?: string | null;
+    description?: string | null;
+  },
+): Promise<void> {
+  const { error } = await supabase.from('agency_requests').insert(input);
+  if (error) throw error;
+}
+
+/** Solicitudes de inmobiliaria (admin). */
+export async function listAgencyRequests(
+  supabase: SupabaseClient,
+): Promise<AgencyRequest[]> {
+  const { data, error } = await supabase
+    .from('agency_requests')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as AgencyRequest[];
+}
+
+/** Aprobar inmobiliaria: marca la solicitud y actualiza el perfil. */
+export async function approveAgency(
+  supabase: SupabaseClient,
+  request: AgencyRequest,
+  promoDays: number | null,
+): Promise<void> {
+  await supabase
+    .from('agency_requests')
+    .update({ status: 'aprobada' })
+    .eq('id', request.id);
+  const update: Record<string, unknown> = {
+    role: 'inmobiliaria',
+    company: request.company,
+    verified: true,
+  };
+  if (promoDays && promoDays > 0) {
+    update.agency_promo_until = new Date(
+      Date.now() + promoDays * 86400000,
+    ).toISOString();
+  }
+  const { error } = await supabase
+    .from('profiles')
+    .update(update)
+    .eq('id', request.user_id);
+  if (error) throw error;
+}
+
+export async function rejectAgency(
+  supabase: SupabaseClient,
+  requestId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('agency_requests')
+    .update({ status: 'rechazada' })
+    .eq('id', requestId);
+  if (error) throw error;
+}
+
+/** Inmuebles activos de una inmobiliaria (para su página). */
+export async function getAgencyProperties(
+  supabase: SupabaseClient,
+  ownerId: string,
+): Promise<PropertyWithImages[]> {
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*, property_images(*)')
+    .eq('owner_id', ownerId)
+    .eq('status', 'activo')
+    .order('featured', { ascending: false })
+    .order('published_at', { ascending: false, nullsFirst: false });
   if (error) throw error;
   return (data ?? []) as PropertyWithImages[];
 }

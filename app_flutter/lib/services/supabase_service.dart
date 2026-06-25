@@ -10,7 +10,8 @@ class PropertyService {
   static Future<List<Property>> search(PropertyFilters f) async {
     var q = supabase
         .from('properties')
-        .select('*, property_images(*), property_amenities(amenity_id)')
+        .select(
+            '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, company, role, verified)')
         .eq('status', 'activo')
         .or('expires_at.is.null,expires_at.gte.${DateTime.now().toIso8601String()}');
 
@@ -67,7 +68,7 @@ class PropertyService {
     final data = await supabase
         .from('properties')
         .select(
-            '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(full_name, phone, whatsapp, company)')
+            '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, company, role)')
         .eq('id', id)
         .maybeSingle();
     if (data == null) return null;
@@ -272,6 +273,84 @@ class PropertyService {
 
   static Future<void> setSetting(String key, String value) async {
     await supabase.from('app_settings').upsert({'key': key, 'value': value});
+  }
+
+  // ---- Inmobiliarias ----
+  static Future<Map<String, dynamic>?> myProfile() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return null;
+    final data = await supabase
+        .from('profiles')
+        .select('role, company, agency_promo_until')
+        .eq('id', user.id)
+        .maybeSingle();
+    return data;
+  }
+
+  static bool agencyPromoActive(String? until) =>
+      until != null && DateTime.parse(until).isAfter(DateTime.now());
+
+  static Future<void> createAgencyRequest({
+    required String company,
+    String? nit,
+    String? phone,
+    String? city,
+    String? description,
+  }) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+    await supabase.from('agency_requests').insert({
+      'user_id': user.id,
+      'company': company,
+      'nit': nit,
+      'phone': phone,
+      'city': city,
+      'description': description,
+    });
+  }
+
+  static Future<List<Map<String, dynamic>>> agencyRequests() async {
+    final data = await supabase
+        .from('agency_requests')
+        .select('*')
+        .order('created_at', ascending: false);
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  static Future<void> approveAgency(
+      Map<String, dynamic> req, int? promoDays) async {
+    await supabase
+        .from('agency_requests')
+        .update({'status': 'aprobada'}).eq('id', req['id']);
+    final update = <String, dynamic>{
+      'role': 'inmobiliaria',
+      'company': req['company'],
+      'verified': true,
+    };
+    if (promoDays != null && promoDays > 0) {
+      update['agency_promo_until'] =
+          DateTime.now().add(Duration(days: promoDays)).toIso8601String();
+    }
+    await supabase.from('profiles').update(update).eq('id', req['user_id']);
+  }
+
+  static Future<void> rejectAgency(String id) async {
+    await supabase
+        .from('agency_requests')
+        .update({'status': 'rechazada'}).eq('id', id);
+  }
+
+  static Future<List<Property>> agencyProperties(String ownerId) async {
+    final data = await supabase
+        .from('properties')
+        .select('*, property_images(*)')
+        .eq('owner_id', ownerId)
+        .eq('status', 'activo')
+        .order('featured', ascending: false)
+        .order('published_at', ascending: false, nullsFirst: false);
+    return (data as List)
+        .map((e) => Property.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ---- Administración ----

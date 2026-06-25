@@ -157,6 +157,17 @@ export default async function PropertyDetailPage({
                 · Cód. {property.ref}
               </p>
             )}
+            {owner?.role === "inmobiliaria" && owner.company && (
+              <a
+                href={`/inmobiliaria/${owner.id}`}
+                className="mt-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800/40"
+              >
+                🏢 {owner.company}
+                <span className="ml-auto text-xs text-emerald-700">
+                  Ver inmobiliaria →
+                </span>
+              </a>
+            )}
 
             <p className="mt-4 text-3xl font-bold text-emerald-800 dark:text-emerald-400">
               {formatPrice(property.price)}

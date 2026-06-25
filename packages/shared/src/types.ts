@@ -34,8 +34,21 @@ export interface Profile {
   bio: string | null;
   company: string | null;
   verified: boolean;
+  agency_promo_until: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface AgencyRequest {
+  id: string;
+  user_id: string;
+  company: string;
+  nit: string | null;
+  phone: string | null;
+  city: string | null;
+  description: string | null;
+  status: string; // pendiente | aprobada | rechazada
+  created_at: string;
 }
 
 export interface PropertyImage {
@@ -91,7 +104,7 @@ export interface Property {
 // Inmueble con sus relaciones (lo que normalmente muestra la UI)
 export interface PropertyWithImages extends Property {
   property_images: PropertyImage[];
-  owner?: Pick<Profile, 'id' | 'full_name' | 'phone' | 'whatsapp' | 'avatar_url' | 'company' | 'verified'>;
+  owner?: Pick<Profile, 'id' | 'full_name' | 'phone' | 'whatsapp' | 'avatar_url' | 'company' | 'verified' | 'role'>;
   property_amenities?: { amenity_id: number }[];
 }
 

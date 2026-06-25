@@ -5,9 +5,21 @@ import { useRouter } from "next/navigation";
 import {
   getPlans,
   getSetting,
+  getProfile,
+  isAgencyPromoActive,
   formatPrice,
   type Plan,
 } from "@inmo/shared";
+
+const AGENCY_PLAN: Plan = {
+  id: "destacado",
+  name: "Inmobiliaria (gratis)",
+  description: "Promo inmobiliaria: gratis y destacado.",
+  price: 0,
+  duration_days: 30,
+  is_featured: true,
+  sort: 0,
+};
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/Header";
@@ -33,7 +45,21 @@ export default function PublicarPage() {
     getSetting(supabase, "bancolombia_info")
       .then((v) => setBancolombia(v ?? ""))
       .catch(console.error);
-  }, []);
+    // Inmobiliaria con promo activa: publica gratis y destacado.
+    if (user) {
+      getProfile(supabase, user.id)
+        .then((p) => {
+          if (
+            p?.role === "inmobiliaria" &&
+            isAgencyPromoActive(p.agency_promo_until)
+          ) {
+            setChosen(AGENCY_PLAN);
+            setStep("form");
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   if (loading || !user) {
     return (

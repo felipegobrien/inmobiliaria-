@@ -3,6 +3,16 @@ import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
 import 'publish_screen.dart';
+import 'agency_register_screen.dart';
+
+final _agencyPlan = Plan(
+  id: 'destacado',
+  name: 'Inmobiliaria (gratis)',
+  description: 'Promo inmobiliaria: gratis y destacado.',
+  price: 0,
+  durationDays: 30,
+  isFeatured: true,
+);
 
 class PlanSelectionScreen extends StatefulWidget {
   const PlanSelectionScreen({super.key});
@@ -14,14 +24,29 @@ class PlanSelectionScreen extends StatefulWidget {
 class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   List<Plan> _plans = [];
   bool _loading = true;
+  Map<String, dynamic>? _profile;
+
+  bool get _agencyPromo =>
+      _profile?['role'] == 'inmobiliaria' &&
+      PropertyService.agencyPromoActive(
+          _profile?['agency_promo_until'] as String?);
 
   @override
   void initState() {
     super.initState();
     supabase.auth.onAuthStateChange.listen((_) {
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+        _loadProfile();
+      }
     });
     _loadPlans();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final p = await PropertyService.myProfile();
+    if (mounted) setState(() => _profile = p);
   }
 
   Future<void> _loadPlans() async {
@@ -92,9 +117,97 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   const Text('Selecciona un plan para tu inmueble.',
                       style: TextStyle(color: AppColors.textMuted)),
                   const SizedBox(height: 20),
-                  for (final plan in _plans) _planCard(plan),
+                  if (_agencyPromo) ...[
+                    _agencyPromoCard(),
+                  ] else ...[
+                    for (final plan in _plans) _planCard(plan),
+                    if (_profile?['role'] != 'inmobiliaria') _agencyInvite(),
+                  ],
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _agencyPromoCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: const [
+            Icon(Icons.workspace_premium, color: Color(0xFFD97706)),
+            SizedBox(width: 8),
+            Text('Promo inmobiliaria',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          ]),
+          const SizedBox(height: 8),
+          const Text(
+            'Tu publicación será GRATIS y quedará DESTACADA automáticamente.',
+            style: TextStyle(color: Color(0xFF92400E)),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD97706)),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => PublishScreen(plan: _agencyPlan)),
+              ),
+              child: const Text('Publicar gratis (destacado)'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _agencyInvite() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFECFDF5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFA7F3D0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: const [
+            Text('🏢 ', style: TextStyle(fontSize: 18)),
+            Expanded(
+              child: Text('¿Eres una inmobiliaria?',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800, color: Color(0xFF065F46))),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          const Text(
+            'Regístrate y agrupa todos tus inmuebles en una página propia. Por tiempo limitado: registro gratis y publicaciones destacadas.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF065F46)),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AgencyRegisterScreen()),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryDark,
+              side: const BorderSide(color: AppColors.primary),
+            ),
+            child: const Text('Registrarme como inmobiliaria'),
+          ),
+        ],
       ),
     );
   }

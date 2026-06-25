@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../services/supabase_service.dart';
 import '../services/favorites_manager.dart';
 import 'publish_screen.dart';
+import 'agency_screen.dart';
 
 class DetailScreen extends StatefulWidget {
   final String propertyId;
@@ -341,6 +342,45 @@ class _DetailScreenState extends State<DetailScreen> {
                       'Publicado el ${DateFormat('d MMM y', 'es').format(p.publishedAt!.toLocal())} · Cód. ${p.ref}',
                       style: const TextStyle(
                           fontSize: 12, color: AppColors.textMuted),
+                    ),
+                  ),
+                if (p.owner?.isAgency ?? false)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: InkWell(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AgencyScreen(
+                              ownerId: p.owner!.id!,
+                              name: p.owner!.company!),
+                        ),
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F4),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.apartment,
+                                color: AppColors.primary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(p.owner!.company!,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primaryDark)),
+                            ),
+                            const Text('Ver inmobiliaria →',
+                                style: TextStyle(
+                                    fontSize: 12, color: AppColors.primary)),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 const SizedBox(height: 14),

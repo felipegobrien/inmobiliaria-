@@ -46,6 +46,15 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
         />
       </div>
 
+      {property.owner?.role === "inmobiliaria" && property.owner.company && (
+        <div className="flex items-center gap-2 border-b border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800/40">
+          <span className="text-emerald-700">🏢</span>
+          <span className="truncate text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            {property.owner.company}
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-1 flex-col gap-1 p-4">
         <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
           {formatPrice(property.price)}

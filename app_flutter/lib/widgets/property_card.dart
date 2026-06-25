@@ -172,6 +172,38 @@ class _PropertyCardState extends State<PropertyCard> {
               ],
             ),
 
+            // Barra de inmobiliaria
+            if (property.owner?.isAgency ?? false)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF1F5F4),
+                  border: Border(
+                    bottom: BorderSide(color: Color(0xFFEAEAED)),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.apartment,
+                        size: 16, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        property.owner!.company!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryDark),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // Contenido
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
