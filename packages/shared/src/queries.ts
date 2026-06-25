@@ -9,10 +9,14 @@ import type {
 // Datos para crear/editar un inmueble (sin los campos que pone el servidor).
 export type PropertyInput = Omit<
   Property,
-  'id' | 'owner_id' | 'views_count' | 'created_at' | 'updated_at' | 'published_at' | 'location'
+  'id' | 'owner_id' | 'views_count' | 'created_at' | 'updated_at' | 'published_at' | 'location' | 'featured' | 'featured_at' | 'plan' | 'expires_at'
 > & {
   latitude?: number | null;
   longitude?: number | null;
+  featured?: boolean;
+  featured_at?: string | null;
+  plan?: string;
+  expires_at?: string | null;
 };
 
 /**
@@ -24,6 +28,7 @@ export async function createProperty(
   ownerId: string,
   input: PropertyInput,
   imageUrls: string[] = [],
+  amenityIds: number[] = [],
 ): Promise<string> {
   const { latitude, longitude, ...rest } = input;
 
@@ -56,6 +61,15 @@ export async function createProperty(
     if (imgErr) throw imgErr;
   }
 
+  if (amenityIds.length) {
+    const rows = amenityIds.map((amenity_id) => ({
+      property_id: propertyId,
+      amenity_id,
+    }));
+    const { error: amErr } = await supabase.from('property_amenities').insert(rows);
+    if (amErr) throw amErr;
+  }
+
   return propertyId;
 }
 
@@ -82,7 +96,8 @@ export async function searchProperties(
   let query = supabase
     .from('properties')
     .select('*, property_images(*)', { count: 'exact' })
-    .eq('status', 'activo');
+    .eq('status', 'activo')
+    .or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`);
 
   if (filters.operation) {
     // venta_arriendo cubre ambas; si piden venta o arriendo, incluir también el combinado
@@ -106,6 +121,11 @@ export async function searchProperties(
   if (filters.minArea != null) query = query.gte('area_m2', filters.minArea);
   if (filters.maxArea != null) query = query.lte('area_m2', filters.maxArea);
 
+  // Destacados primero (el último en destacarse va de primero).
+  query = query
+    .order('featured', { ascending: false })
+    .order('featured_at', { ascending: false, nullsFirst: false });
+
   const sort = SORT_MAP[filters.sortBy ?? 'recientes'];
   query = query.order(sort.col, { ascending: sort.asc, nullsFirst: false });
 
@@ -124,6 +144,7 @@ export async function updateProperty(
   id: string,
   input: PropertyInput,
   newImageUrls: string[] = [],
+  amenityIds?: number[],
 ): Promise<void> {
   const { latitude, longitude, ...rest } = input;
 
@@ -137,6 +158,21 @@ export async function updateProperty(
 
   const { error } = await supabase.from('properties').update(row).eq('id', id);
   if (error) throw error;
+
+  // Si se pasan amenidades, reemplazar las existentes.
+  if (amenityIds) {
+    await supabase.from('property_amenities').delete().eq('property_id', id);
+    if (amenityIds.length) {
+      const rows = amenityIds.map((amenity_id) => ({
+        property_id: id,
+        amenity_id,
+      }));
+      const { error: amErr } = await supabase
+        .from('property_amenities')
+        .insert(rows);
+      if (amErr) throw amErr;
+    }
+  }
 
   if (newImageUrls.length) {
     // Posición de las nuevas fotos = después de las existentes.
@@ -181,7 +217,7 @@ export async function getProperty(
 ): Promise<PropertyWithImages | null> {
   const { data, error } = await supabase
     .from('properties')
-    .select('*, property_images(*), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified)')
+    .select('*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified)')
     .eq('id', id)
     .single();
   if (error) {
@@ -207,11 +243,37 @@ export async function getMyProperties(
   return (data ?? []) as PropertyWithImages[];
 }
 
-/** Catálogo de amenidades. */
+/** Catálogo de amenidades (características). */
 export async function getAmenities(supabase: SupabaseClient): Promise<Amenity[]> {
   const { data, error } = await supabase.from('amenities').select('*').order('name');
   if (error) throw error;
   return (data ?? []) as Amenity[];
+}
+
+/** Autocompletado de ciudades por prefijo. */
+export async function searchCities(
+  supabase: SupabaseClient,
+  q: string,
+): Promise<string[]> {
+  if (!q) return [];
+  const { data, error } = await supabase.rpc('search_cities', { q });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => r.city as string);
+}
+
+/** Autocompletado de barrios por prefijo (opcionalmente filtrado por ciudad). */
+export async function searchNeighborhoods(
+  supabase: SupabaseClient,
+  q: string,
+  city?: string,
+): Promise<string[]> {
+  if (!q) return [];
+  const { data, error } = await supabase.rpc('search_neighborhoods', {
+    q,
+    c: city ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => r.neighborhood as string);
 }
 
 /** Alternar favorito. */

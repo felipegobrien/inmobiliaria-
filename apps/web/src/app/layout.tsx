@@ -14,9 +14,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { SITE_URL } from "@/lib/supabase-server";
+
 export const metadata: Metadata = {
-  title: "Inmobiliaria — Encuentra tu próximo hogar",
-  description: "Portal inmobiliario: compra, vende y arrienda inmuebles en Colombia.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Inmobiliaria — Encuentra tu próximo hogar en Colombia",
+    template: "%s | Inmobiliaria",
+  },
+  description:
+    "Portal inmobiliario: compra, vende y arrienda apartamentos, casas y más en toda Colombia.",
 };
 
 export default function RootLayout({

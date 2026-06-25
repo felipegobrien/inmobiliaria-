@@ -1,14 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createProperty,
   updateProperty,
   uploadPropertyImage,
   deletePropertyImage,
+  getAmenities,
+  searchCities,
+  searchNeighborhoods,
   OPERATION_LABELS,
   TYPE_LABELS,
+  AMENITY_CATEGORY_LABELS,
+  COLOMBIA_DEPARTMENTS,
+  type Amenity,
+  type AmenityCategory,
   type OperationType,
   type PropertyType,
   type PropertyInput,
@@ -18,6 +25,13 @@ import { supabase } from "@/lib/supabase";
 
 const input =
   "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
+
+const CATEGORY_ORDER: AmenityCategory[] = [
+  "interiores",
+  "zonas_comunes",
+  "sector",
+  "general",
+];
 
 export function PropertyForm({
   userId,
@@ -50,11 +64,45 @@ export function PropertyForm({
     initial?.property_images ?? [],
   );
   const [files, setFiles] = useState<File[]>([]);
+
+  // Características
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [selectedAmenities, setSelectedAmenities] = useState<Set<number>>(
+    new Set(initial?.property_amenities?.map((a) => a.amenity_id) ?? []),
+  );
+
+  // Lugares cercanos
+  const [nearbyPlaces, setNearbyPlaces] = useState<string[]>(
+    initial?.nearby_places ?? [],
+  );
+  const [nearbyInput, setNearbyInput] = useState("");
+
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    getAmenities(supabase)
+      .then(setAmenities)
+      .catch((e) => console.error(e));
+  }, []);
+
   const set = (k: keyof typeof form, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  const toggleAmenity = (id: number) =>
+    setSelectedAmenities((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const addNearby = () => {
+    const v = nearbyInput.trim();
+    if (v && !nearbyPlaces.includes(v)) {
+      setNearbyPlaces((p) => [...p, v]);
+    }
+    setNearbyInput("");
+  };
 
   const removeExisting = async (imageId: string) => {
     try {
@@ -98,14 +146,16 @@ export function PropertyForm({
         city: form.city,
         neighborhood: form.neighborhood || null,
         address: form.address || null,
+        nearby_places: nearbyPlaces,
       };
 
+      const amenityIds = Array.from(selectedAmenities);
       let id: string;
       if (isEdit) {
-        await updateProperty(supabase, initial!.id, payload, urls);
+        await updateProperty(supabase, initial!.id, payload, urls, amenityIds);
         id = initial!.id;
       } else {
-        id = await createProperty(supabase, userId, payload, urls);
+        id = await createProperty(supabase, userId, payload, urls, amenityIds);
       }
       router.push(`/inmueble/${id}`);
     } catch (err: any) {
@@ -113,6 +163,9 @@ export function PropertyForm({
       setSaving(false);
     }
   };
+
+  const byCategory = (cat: AmenityCategory) =>
+    amenities.filter((a) => a.category === cat);
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -239,31 +292,37 @@ export function PropertyForm({
         />
       </Labeled>
 
+      {/* Ubicación */}
       <div className="grid grid-cols-2 gap-3">
         <Labeled label="Departamento">
-          <input
+          <select
             required
             value={form.department}
             onChange={(e) => set("department", e.target.value)}
-            placeholder="Antioquia"
             className={input}
-          />
+          >
+            <option value="">Selecciona…</option>
+            {COLOMBIA_DEPARTMENTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
         </Labeled>
         <Labeled label="Ciudad">
-          <input
-            required
+          <Autocomplete
             value={form.city}
-            onChange={(e) => set("city", e.target.value)}
+            onChange={(v) => set("city", v)}
             placeholder="Medellín"
-            className={input}
+            fetcher={(q) => searchCities(supabase, q)}
           />
         </Labeled>
         <Labeled label="Barrio">
-          <input
+          <Autocomplete
             value={form.neighborhood}
-            onChange={(e) => set("neighborhood", e.target.value)}
+            onChange={(v) => set("neighborhood", v)}
             placeholder="El Poblado"
-            className={input}
+            fetcher={(q) => searchNeighborhoods(supabase, q, form.city)}
           />
         </Labeled>
         <Labeled label="Dirección">
@@ -274,6 +333,89 @@ export function PropertyForm({
           />
         </Labeled>
       </div>
+
+      {/* Características */}
+      <div className="flex flex-col gap-4">
+        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+          Características del inmueble
+        </p>
+        {CATEGORY_ORDER.map((cat) => {
+          const items = byCategory(cat);
+          if (!items.length) return null;
+          return (
+            <div key={cat}>
+              <p className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                {AMENITY_CATEGORY_LABELS[cat]}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {items.map((a) => {
+                  const active = selectedAmenities.has(a.id);
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => toggleAmenity(a.id)}
+                      className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                        active
+                          ? "border-emerald-700 bg-emerald-700 text-white"
+                          : "border-zinc-300 text-zinc-700 hover:border-emerald-600 dark:border-zinc-700 dark:text-zinc-300"
+                      }`}
+                    >
+                      {a.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Lugares cercanos */}
+      <Labeled label="Lugares cercanos (centros comerciales, colegios, etc.)">
+        <div className="flex gap-2">
+          <input
+            value={nearbyInput}
+            onChange={(e) => setNearbyInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addNearby();
+              }
+            }}
+            placeholder="Ej. Centro Comercial Santafé"
+            className={`${input} flex-1`}
+          />
+          <button
+            type="button"
+            onClick={addNearby}
+            className="rounded-lg bg-emerald-700 px-4 text-sm font-medium text-white hover:bg-emerald-800"
+          >
+            Agregar
+          </button>
+        </div>
+      </Labeled>
+      {nearbyPlaces.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {nearbyPlaces.map((p) => (
+            <span
+              key={p}
+              className="flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-sm dark:bg-zinc-800"
+            >
+              📍 {p}
+              <button
+                type="button"
+                onClick={() =>
+                  setNearbyPlaces((list) => list.filter((x) => x !== p))
+                }
+                className="text-zinc-400 hover:text-red-600"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Fotos existentes (en edición) */}
       {existingImages.length > 0 && (
@@ -360,5 +502,72 @@ function Labeled({
       <span className="text-zinc-700 dark:text-zinc-300">{label}</span>
       {children}
     </label>
+  );
+}
+
+// Campo de texto con sugerencias (autocompletado).
+function Autocomplete({
+  value,
+  onChange,
+  placeholder,
+  fetcher,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  fetcher: (q: string) => Promise<string[]>;
+}) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!value || value.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    let active = true;
+    const t = setTimeout(() => {
+      fetcher(value)
+        .then((s) => active && setSuggestions(s.filter((x) => x !== value)))
+        .catch(() => {});
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="relative">
+      <input
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className={`${input} w-full`}
+      />
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+          {suggestions.map((s) => (
+            <li key={s}>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(s);
+                  setOpen(false);
+                }}
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                {s}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

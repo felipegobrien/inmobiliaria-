@@ -75,8 +75,13 @@ export interface Property {
   neighborhood: string | null;
   address: string | null;
   location: unknown | null; // GeoJSON Point
+  nearby_places: string[];
 
   views_count: number;
+  featured: boolean;
+  featured_at: string | null;
+  plan: string;
+  expires_at: string | null;
   created_at: string;
   updated_at: string;
   published_at: string | null;
@@ -86,6 +91,7 @@ export interface Property {
 export interface PropertyWithImages extends Property {
   property_images: PropertyImage[];
   owner?: Pick<Profile, 'id' | 'full_name' | 'phone' | 'whatsapp' | 'avatar_url' | 'company' | 'verified'>;
+  property_amenities?: { amenity_id: number }[];
 }
 
 // Filtros del buscador
@@ -108,8 +114,32 @@ export interface PropertyFilters {
   pageSize?: number;
 }
 
+export type AmenityCategory =
+  | 'interiores'
+  | 'zonas_comunes'
+  | 'sector'
+  | 'general';
+
 export interface Amenity {
   id: number;
   name: string;
   icon: string | null;
+  category: AmenityCategory;
 }
+
+export const AMENITY_CATEGORY_LABELS: Record<AmenityCategory, string> = {
+  interiores: 'Interiores',
+  zonas_comunes: 'Zonas comunes y exteriores',
+  sector: 'Características del sector',
+  general: 'Otras',
+};
+
+// 32 departamentos de Colombia + Bogotá D.C.
+export const COLOMBIA_DEPARTMENTS = [
+  'Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bogotá D.C.', 'Bolívar',
+  'Boyacá', 'Caldas', 'Caquetá', 'Casanare', 'Cauca', 'Cesar', 'Chocó',
+  'Córdoba', 'Cundinamarca', 'Guainía', 'Guaviare', 'Huila', 'La Guajira',
+  'Magdalena', 'Meta', 'Nariño', 'Norte de Santander', 'Putumayo', 'Quindío',
+  'Risaralda', 'San Andrés y Providencia', 'Santander', 'Sucre', 'Tolima',
+  'Valle del Cauca', 'Vaupés', 'Vichada',
+] as const;
