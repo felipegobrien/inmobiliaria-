@@ -1,11 +1,58 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   Amenity,
+  Inquiry,
   Plan,
   Property,
   PropertyFilters,
   PropertyWithImages,
 } from './types';
+
+export interface InquiryInput {
+  property_id: string;
+  sender_id?: string | null;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  message: string;
+}
+
+/** Registrar un lead/consulta de un interesado. */
+export async function createInquiry(
+  supabase: SupabaseClient,
+  input: InquiryInput,
+): Promise<void> {
+  const { error } = await supabase.from('inquiries').insert(input);
+  if (error) throw error;
+}
+
+/** Leads de un inmueble (solo el dueño, por RLS). */
+export async function getInquiries(
+  supabase: SupabaseClient,
+  propertyId: string,
+): Promise<Inquiry[]> {
+  const { data, error } = await supabase
+    .from('inquiries')
+    .select('*')
+    .eq('property_id', propertyId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Inquiry[];
+}
+
+/** Mis inmuebles con métricas (vistas ya vienen; agrega nº de contactos). */
+export async function getMyPropertiesWithStats(
+  supabase: SupabaseClient,
+  ownerId: string,
+): Promise<(PropertyWithImages & { contacts: number })[]> {
+  const props = await getMyProperties(supabase, ownerId);
+  const { data } = await supabase.from('inquiries').select('property_id');
+  const counts: Record<string, number> = {};
+  for (const r of (data ?? []) as { property_id: string }[]) {
+    counts[r.property_id] = (counts[r.property_id] ?? 0) + 1;
+  }
+  return props.map((p) => ({ ...p, contacts: counts[p.id] ?? 0 }));
+}
 
 // Datos para crear/editar un inmueble (sin los campos que pone el servidor).
 export type PropertyInput = Omit<

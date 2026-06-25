@@ -114,6 +114,17 @@ export interface PropertyFilters {
   pageSize?: number;
 }
 
+export interface Inquiry {
+  id: string;
+  property_id: string;
+  sender_id: string | null;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  message: string;
+  created_at: string;
+}
+
 export interface Plan {
   id: string;
   name: string;

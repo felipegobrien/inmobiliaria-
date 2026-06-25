@@ -16,6 +16,7 @@ import { Header } from "@/components/Header";
 import { Gallery } from "@/components/Gallery";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { OwnerActions } from "@/components/OwnerActions";
+import { ContactPanel } from "@/components/ContactPanel";
 
 export const revalidate = 60; // re-genera cada minuto
 
@@ -70,9 +71,6 @@ export default async function PropertyDetailPage({
 
   const owner = property.owner;
   const wppNumber = owner?.whatsapp ?? owner?.phone;
-  const wppMsg = encodeURIComponent(
-    `Hola, estoy interesado en tu inmueble "${property.title}" publicado en el portal.`,
-  );
   const cover =
     property.property_images?.find((i) => i.is_cover)?.url ??
     property.property_images?.[0]?.url;
@@ -195,29 +193,13 @@ export default async function PropertyDetailPage({
             )}
           </div>
 
-          <aside className="h-fit rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-            <h2 className="font-semibold text-zinc-900 dark:text-zinc-50">
-              Contactar al anunciante
-            </h2>
-            <p className="mt-1 text-sm text-zinc-500">
-              {owner?.full_name ?? "Anunciante"}
-              {owner?.company ? ` · ${owner.company}` : ""}
-            </p>
-            {wppNumber ? (
-              <a
-                href={`https://wa.me/57${wppNumber.replace(/\D/g, "")}?text=${wppMsg}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 block rounded-lg bg-emerald-700 py-3 text-center font-medium text-white hover:bg-emerald-800"
-              >
-                Escribir por WhatsApp
-              </a>
-            ) : (
-              <p className="mt-4 text-sm text-zinc-400">
-                El anunciante no registró teléfono de contacto.
-              </p>
-            )}
-          </aside>
+          <ContactPanel
+            propertyId={property.id}
+            title={property.title}
+            ownerName={owner?.full_name ?? "Anunciante"}
+            company={owner?.company}
+            contactNumber={wppNumber}
+          />
         </div>
       </main>
     </div>
