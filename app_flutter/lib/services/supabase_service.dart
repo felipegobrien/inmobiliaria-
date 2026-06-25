@@ -11,7 +11,7 @@ class PropertyService {
     var q = supabase
         .from('properties')
         .select(
-            '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, company, role, verified)')
+            '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, company, role, verified, avatar_url)')
         .eq('status', 'activo')
         .or('expires_at.is.null,expires_at.gte.${DateTime.now().toIso8601String()}');
 
@@ -281,10 +281,16 @@ class PropertyService {
     if (user == null) return null;
     final data = await supabase
         .from('profiles')
-        .select('role, company, agency_promo_until')
+        .select('role, company, agency_promo_until, avatar_url')
         .eq('id', user.id)
         .maybeSingle();
     return data;
+  }
+
+  static Future<void> updateAvatar(String url) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+    await supabase.from('profiles').update({'avatar_url': url}).eq('id', user.id);
   }
 
   static bool agencyPromoActive(String? until) =>

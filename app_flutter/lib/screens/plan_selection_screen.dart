@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
+import '../services/app_events.dart';
 import 'publish_screen.dart';
 import 'agency_register_screen.dart';
 
@@ -42,6 +43,13 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     });
     _loadPlans();
     _loadProfile();
+    appRefresh.addListener(_loadProfile);
+  }
+
+  @override
+  void dispose() {
+    appRefresh.removeListener(_loadProfile);
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {

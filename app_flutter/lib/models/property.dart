@@ -125,6 +125,7 @@ class Owner {
   final String? whatsapp;
   final String? company;
   final String? role;
+  final String? avatarUrl;
 
   Owner({
     this.id,
@@ -133,6 +134,7 @@ class Owner {
     this.whatsapp,
     this.company,
     this.role,
+    this.avatarUrl,
   });
 
   bool get isAgency => role == 'inmobiliaria' && (company?.isNotEmpty ?? false);
@@ -144,6 +146,7 @@ class Owner {
         whatsapp: j['whatsapp'] as String?,
         company: j['company'] as String?,
         role: j['role'] as String?,
+        avatarUrl: j['avatar_url'] as String?,
       );
 }
 

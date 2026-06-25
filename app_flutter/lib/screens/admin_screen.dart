@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
+import '../services/app_events.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -145,6 +146,7 @@ class _AdminScreenState extends State<AdminScreen> {
     try {
       final days = _promoEnabled ? int.tryParse(_promoDaysCtrl.text) : null;
       await PropertyService.approveAgency(req, days);
+      bumpRefresh();
       _msg('Inmobiliaria aprobada');
       _load();
     } catch (e) {

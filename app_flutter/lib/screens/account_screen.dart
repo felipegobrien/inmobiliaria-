@@ -1,7 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
+import '../services/app_events.dart';
 import 'admin_screen.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -15,6 +18,8 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _isLogin = true;
   bool _loading = false;
   String? _role;
+  String? _avatarUrl;
+  bool _uploadingAvatar = false;
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
@@ -33,8 +38,46 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _loadRole() async {
-    final r = await PropertyService.myRole();
-    if (mounted) setState(() => _role = r);
+    final p = await PropertyService.myProfile();
+    if (mounted) {
+      setState(() {
+        _role = p?['role'] as String?;
+        _avatarUrl = p?['avatar_url'] as String?;
+      });
+    }
+  }
+
+  Widget _initial(String name, String? email) => Center(
+        child: Text(
+          (name.isNotEmpty ? name : (email ?? '?'))[0].toUpperCase(),
+          style: const TextStyle(
+              color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800),
+        ),
+      );
+
+  Future<void> _changeAvatar() async {
+    final picked =
+        await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (picked == null) return;
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+    setState(() => _uploadingAvatar = true);
+    try {
+      final Uint8List bytes = await picked.readAsBytes();
+      final ext = picked.name.split('.').last.toLowerCase();
+      final url = await PropertyService.uploadImage(
+          user.id, bytes, ext == 'png' ? 'png' : 'jpg');
+      await PropertyService.updateAvatar(url);
+      bumpRefresh();
+      if (mounted) setState(() => _avatarUrl = url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingAvatar = false);
+    }
   }
 
   @override
@@ -120,19 +163,48 @@ class _AccountScreenState extends State<AccountScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircleAvatar(
-                  radius: 44,
-                  backgroundColor: AppColors.primary,
-                  child: Text(
-                    (name.isNotEmpty ? name : user.email ?? '?')[0]
-                        .toUpperCase(),
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 36,
-                        fontWeight: FontWeight.w800),
-                  ),
+                Stack(
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: const BoxDecoration(
+                          shape: BoxShape.circle, color: AppColors.primary),
+                      clipBehavior: Clip.antiAlias,
+                      child: _uploadingAvatar
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                              ? Image.network(_avatarUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => _initial(name, user.email))
+                              : _initial(name, user.email),
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: GestureDetector(
+                        onTap: _uploadingAvatar ? null : _changeAvatar,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: const Icon(Icons.camera_alt,
+                              size: 18, color: AppColors.primaryDark),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
+                if (_role == 'inmobiliaria')
+                  const Text('Toca la cámara para cambiar tu logo',
+                      style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                const SizedBox(height: 12),
                 Text(name,
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.w800)),

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
+import '../services/app_events.dart';
 import 'detail_screen.dart';
 
 const _operations = ['venta', 'arriendo', 'venta_arriendo'];
@@ -177,6 +178,7 @@ class _PublishScreenState extends State<PublishScreen> {
         id = await PropertyService.create(payload, urls, amenityIds);
       }
 
+      bumpRefresh();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(isEdit ? 'Cambios guardados' : '¡Inmueble publicado!')));

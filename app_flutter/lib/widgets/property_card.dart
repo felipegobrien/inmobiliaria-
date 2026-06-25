@@ -172,7 +172,7 @@ class _PropertyCardState extends State<PropertyCard> {
               ],
             ),
 
-            // Barra de inmobiliaria
+            // Barra de inmobiliaria (con logo a la derecha)
             if (property.owner?.isAgency ?? false)
               Container(
                 width: double.infinity,
@@ -180,14 +180,12 @@ class _PropertyCardState extends State<PropertyCard> {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: const BoxDecoration(
                   color: Color(0xFFF1F5F4),
-                  border: Border(
-                    bottom: BorderSide(color: Color(0xFFEAEAED)),
-                  ),
+                  border: Border(bottom: BorderSide(color: Color(0xFFEAEAED))),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.apartment,
-                        size: 16, color: AppColors.primary),
+                        size: 18, color: AppColors.primary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -195,11 +193,13 @@ class _PropertyCardState extends State<PropertyCard> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.primaryDark),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    _agencyLogo(property.owner!),
                   ],
                 ),
               ),
@@ -271,6 +271,27 @@ class _PropertyCardState extends State<PropertyCard> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _agencyLogo(Owner owner) {
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        border: Border.all(color: AppColors.primary, width: 2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: (owner.avatarUrl != null && owner.avatarUrl!.isNotEmpty)
+          ? CachedNetworkImage(
+              imageUrl: owner.avatarUrl!,
+              fit: BoxFit.cover,
+              errorWidget: (_, __, ___) =>
+                  const Icon(Icons.apartment, color: AppColors.primary, size: 22),
+            )
+          : const Icon(Icons.apartment, color: AppColors.primary, size: 22),
     );
   }
 

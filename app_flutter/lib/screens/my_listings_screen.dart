@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
+import '../services/app_events.dart';
 import 'detail_screen.dart';
 import 'plan_selection_screen.dart';
 
@@ -44,11 +45,13 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     _authSub = supabase.auth.onAuthStateChange.listen((_) {
       if (mounted) _load();
     });
+    appRefresh.addListener(_load);
   }
 
   @override
   void dispose() {
     _authSub?.cancel();
+    appRefresh.removeListener(_load);
     super.dispose();
   }
 

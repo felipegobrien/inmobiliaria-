@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../services/app_events.dart';
 import 'search_screen.dart';
 import 'favorites_screen.dart';
 import 'plan_selection_screen.dart';
@@ -30,7 +31,10 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(index: _index, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: (i) {
+          setState(() => _index = i);
+          bumpRefresh();
+        },
         indicatorColor: AppColors.primary.withValues(alpha: 0.15),
         destinations: const [
           NavigationDestination(

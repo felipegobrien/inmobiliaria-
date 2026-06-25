@@ -145,7 +145,7 @@ export async function searchProperties(
   let query = supabase
     .from('properties')
     .select(
-      '*, property_images(*), owner:profiles!properties_owner_id_fkey(id, full_name, company, role, verified)',
+      '*, property_images(*), owner:profiles!properties_owner_id_fkey(id, full_name, company, role, verified, avatar_url)',
       { count: 'exact' },
     )
     .eq('status', 'activo')
