@@ -48,6 +48,32 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
+  Widget _roleBadge() {
+    final (label, color, icon) = switch (_role) {
+      'admin' => ('Administrador', AppColors.primaryDark, Icons.shield),
+      'inmobiliaria' => ('Inmobiliaria', const Color(0xFFD97706), Icons.apartment),
+      'agente' => ('Agente', AppColors.primary, Icons.badge),
+      _ => ('Cliente', AppColors.textMuted, Icons.person),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.w700, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
   Widget _initial(String name, String? email) => Center(
         child: Text(
           (name.isNotEmpty ? name : (email ?? '?'))[0].toUpperCase(),
@@ -189,23 +215,24 @@ class _AccountScreenState extends State<AccountScreen> {
                                   errorBuilder: (_, __, ___) => _initial(name, user.email))
                               : _initial(name, user.email),
                     ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: GestureDetector(
-                        onTap: _uploadingAvatar ? null : _changeAvatar,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.border),
+                    if (_role == 'inmobiliaria')
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: GestureDetector(
+                          onTap: _uploadingAvatar ? null : _changeAvatar,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: const Icon(Icons.camera_alt,
+                                size: 18, color: AppColors.primaryDark),
                           ),
-                          child: const Icon(Icons.camera_alt,
-                              size: 18, color: AppColors.primaryDark),
                         ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -218,6 +245,8 @@ class _AccountScreenState extends State<AccountScreen> {
                         fontSize: 20, fontWeight: FontWeight.w800)),
                 Text(user.email ?? '',
                     style: const TextStyle(color: AppColors.textMuted)),
+                const SizedBox(height: 8),
+                _roleBadge(),
                 const SizedBox(height: 28),
                 if (_role == 'admin')
                   Padding(

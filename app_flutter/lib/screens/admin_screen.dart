@@ -172,10 +172,14 @@ class _AdminScreenState extends State<AdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pending =
+        _requests.where((r) => r['status'] == 'pendiente').length;
     return Scaffold(
+      backgroundColor: const Color(0xFFF0F0F2),
       appBar: AppBar(
           title: const Text('Panel de administración'),
           backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
           foregroundColor: AppColors.text),
       body: _loading
           ? const Center(
@@ -183,98 +187,181 @@ class _AdminScreenState extends State<AdminScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _section('Precios de planes'),
-                for (final p in _plans)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(p.name,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: TextField(
-                            controller: _priceCtrls[p.id],
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                prefixText: '\$ ', isDense: true),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ElevatedButton(
-                    onPressed: _savePrices,
-                    child: const Text('Guardar precios')),
-
-                const SizedBox(height: 24),
-                _section('Datos de pago (Bancolombia)'),
-                TextField(
-                  controller: _bancolombiaCtrl,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                      hintText: 'Cuenta, titular, instrucciones…'),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                    onPressed: _saveBancolombia,
-                    child: const Text('Guardar datos de pago')),
-
-                const SizedBox(height: 24),
-                _section('Promo inmobiliarias'),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: _promoEnabled,
-                  activeColor: AppColors.primary,
-                  title: const Text('Promo activa (registro gratis + destacado)'),
-                  subtitle: const Text(
-                      'Si está activa, al aprobar una inmobiliaria recibe la promo.'),
-                  onChanged: (v) => setState(() => _promoEnabled = v),
-                ),
+                // Resumen
                 Row(
                   children: [
-                    const Text('Días de promo: '),
-                    SizedBox(
-                      width: 90,
-                      child: TextField(
-                        controller: _promoDaysCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(isDense: true),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                        onPressed: _savePromo, child: const Text('Guardar')),
+                    _stat('Usuarios', '${_users.length}', Icons.people_outline),
+                    const SizedBox(width: 10),
+                    _stat('Solicitudes', '$pending', Icons.mark_email_unread_outlined),
                   ],
                 ),
+                const SizedBox(height: 16),
 
-                const SizedBox(height: 24),
-                _section('Solicitudes de inmobiliarias'),
-                if (_requests.where((r) => r['status'] == 'pendiente').isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: Text('No hay solicitudes pendientes.',
-                        style: TextStyle(color: AppColors.textMuted)),
+                _card(Icons.sell_outlined, 'Precios de planes', [
+                  for (final p in _plans)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text(p.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              controller: _priceCtrls[p.id],
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  prefixText: '\$ ', isDense: true),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  _saveButton('Guardar precios', _savePrices),
+                ]),
+
+                _card(Icons.account_balance_outlined,
+                    'Datos de pago (Bancolombia)', [
+                  TextField(
+                    controller: _bancolombiaCtrl,
+                    maxLines: 5,
+                    decoration: const InputDecoration(
+                        hintText: 'Cuenta, titular, instrucciones…'),
                   ),
-                for (final r in _requests) _requestTile(r),
+                  const SizedBox(height: 10),
+                  _saveButton('Guardar datos de pago', _saveBancolombia),
+                ]),
 
-                const SizedBox(height: 24),
-                _section('Usuarios (${_users.length})'),
-                for (final u in _users) _userTile(u),
+                _card(Icons.workspace_premium_outlined,
+                    'Promo inmobiliarias', [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: _promoEnabled,
+                    activeColor: AppColors.primary,
+                    title: const Text('Promo activa',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: const Text(
+                        'Registro gratis + publicaciones destacadas al aprobar.'),
+                    onChanged: (v) => setState(() => _promoEnabled = v),
+                  ),
+                  Row(
+                    children: [
+                      const Text('Días de promo: '),
+                      SizedBox(
+                        width: 80,
+                        child: TextField(
+                          controller: _promoDaysCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(isDense: true),
+                        ),
+                      ),
+                      const Spacer(),
+                      _saveButton('Guardar', _savePromo),
+                    ],
+                  ),
+                ]),
+
+                _card(
+                  Icons.business_outlined,
+                  'Solicitudes de inmobiliarias',
+                  [
+                    if (_requests.isEmpty)
+                      const Text('No hay solicitudes.',
+                          style: TextStyle(color: AppColors.textMuted)),
+                    for (final r in _requests) _requestTile(r),
+                  ],
+                  badge: pending > 0 ? pending : null,
+                ),
+
+                _card(Icons.people_outline, 'Usuarios (${_users.length})', [
+                  for (final u in _users) _userTile(u),
+                ]),
                 const SizedBox(height: 40),
               ],
             ),
     );
   }
 
-  Widget _section(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(t,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+  Widget _card(IconData icon, String title, List<Widget> children,
+      {int? badge}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800)),
+              ),
+              if (badge != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFD97706),
+                      borderRadius: BorderRadius.circular(999)),
+                  child: Text('$badge',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
+                ),
+            ],
+          ),
+          const Divider(height: 20),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _stat(String label, String value, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppColors.primary, size: 20),
+            const SizedBox(height: 6),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryDark)),
+            Text(label,
+                style:
+                    const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _saveButton(String label, VoidCallback onTap) => SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(onPressed: onTap, child: Text(label)),
       );
 
   Widget _requestTile(Map<String, dynamic> r) {
