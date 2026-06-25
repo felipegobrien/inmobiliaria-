@@ -2,8 +2,9 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { getProperty, type PropertyWithImages } from "@inmo/shared";
+import { type PropertyWithImages } from "@inmo/shared";
 import { supabase } from "@/lib/supabase";
+import { getPropertyBySlug } from "@/lib/listings";
 import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/Header";
 import { PropertyForm } from "@/components/PropertyForm";
@@ -11,9 +12,9 @@ import { PropertyForm } from "@/components/PropertyForm";
 export default function EditarInmueblePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = use(params);
+  const { slug } = use(params);
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [property, setProperty] = useState<PropertyWithImages | null>(null);
@@ -25,11 +26,11 @@ export default function EditarInmueblePage({
       return;
     }
     if (user) {
-      getProperty(supabase, id)
+      getPropertyBySlug(supabase, slug)
         .then(setProperty)
         .finally(() => setLoading(false));
     }
-  }, [authLoading, user, id, router]);
+  }, [authLoading, user, slug, router]);
 
   if (loading || authLoading) {
     return (

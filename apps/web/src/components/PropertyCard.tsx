@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   formatPrice,
+  propertyPath,
   OPERATION_LABELS,
   TYPE_LABELS,
   type PropertyWithImages,
@@ -14,7 +15,7 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
 
   return (
     <Link
-      href={`/inmueble/${property.id}`}
+      href={propertyPath(property)}
       className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
     >
       <div className="relative aspect-[4/3] w-full bg-zinc-100 dark:bg-zinc-800">

@@ -19,6 +19,7 @@ class _DetailScreenState extends State<DetailScreen> {
   Property? _p;
   List<Amenity> _amenities = [];
   bool _loading = true;
+  bool _contactRevealed = false;
 
   @override
   void initState() {
@@ -41,6 +42,113 @@ class _DetailScreenState extends State<DetailScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
     });
+  }
+
+  Future<void> _showContactForm(Property p) async {
+    final user = supabase.auth.currentUser;
+    final nameCtrl = TextEditingController(
+        text: user?.userMetadata?['full_name'] as String? ?? '');
+    final phoneCtrl = TextEditingController();
+    final emailCtrl = TextEditingController(text: user?.email ?? '');
+    final msgCtrl = TextEditingController(
+        text: 'Hola, vi este inmueble "${p.title}" y me interesa más información.');
+
+    final sent = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        bool sending = false;
+        return StatefulBuilder(
+          builder: (ctx, setSheet) => Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Completa tus datos',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                const Text('Déjale tus datos al anunciante para ver el contacto.',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                const SizedBox(height: 14),
+                TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(hintText: 'Tu nombre')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration:
+                        const InputDecoration(hintText: 'Tu teléfono / WhatsApp')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration:
+                        const InputDecoration(hintText: 'Tu correo (opcional)')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: msgCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(hintText: 'Mensaje')),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: sending
+                        ? null
+                        : () async {
+                            if (nameCtrl.text.trim().isEmpty ||
+                                phoneCtrl.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Ingresa tu nombre y teléfono.')),
+                              );
+                              return;
+                            }
+                            setSheet(() => sending = true);
+                            try {
+                              await PropertyService.createInquiry(
+                                propertyId: p.id,
+                                senderId: user?.id,
+                                name: nameCtrl.text.trim(),
+                                email: emailCtrl.text.trim().isEmpty
+                                    ? null
+                                    : emailCtrl.text.trim(),
+                                phone: phoneCtrl.text.trim(),
+                                message: msgCtrl.text.trim(),
+                              );
+                              if (ctx.mounted) Navigator.pop(ctx, true);
+                            } catch (e) {
+                              setSheet(() => sending = false);
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')));
+                              }
+                            }
+                          },
+                    child: Text(sending ? 'Enviando…' : 'Ver datos de contacto'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (sent == true && mounted) setState(() => _contactRevealed = true);
   }
 
   Future<void> _openWhatsApp(String number, String title) async {
@@ -284,7 +392,21 @@ class _DetailScreenState extends State<DetailScreen> {
                 ],
 
                 const SizedBox(height: 24),
-                if (wpp != null && wpp.isNotEmpty)
+                if (wpp == null || wpp.isEmpty)
+                  const Center(
+                    child: Text('El anunciante no registró teléfono.',
+                        style: TextStyle(color: AppColors.textMuted)),
+                  )
+                else if (!_contactRevealed)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showContactForm(p),
+                      icon: const Icon(Icons.lock_open),
+                      label: const Text('Ver datos de contacto'),
+                    ),
+                  )
+                else ...[
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -292,12 +414,24 @@ class _DetailScreenState extends State<DetailScreen> {
                       icon: const Icon(Icons.chat),
                       label: const Text('Escribir por WhatsApp'),
                     ),
-                  )
-                else
-                  const Center(
-                    child: Text('El anunciante no registró teléfono.',
-                        style: TextStyle(color: AppColors.textMuted)),
                   ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => launchUrl(
+                          Uri.parse('tel:+57${wpp.replaceAll(RegExp(r'\D'), '')}'),
+                          mode: LaunchMode.externalApplication),
+                      icon: const Icon(Icons.call),
+                      label: Text('Llamar: $wpp'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
                 if (isOwner) ...[
                   const SizedBox(height: 12),
                   SizedBox(

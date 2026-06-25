@@ -57,7 +57,7 @@ export async function getMyPropertiesWithStats(
 // Datos para crear/editar un inmueble (sin los campos que pone el servidor).
 export type PropertyInput = Omit<
   Property,
-  'id' | 'owner_id' | 'views_count' | 'created_at' | 'updated_at' | 'published_at' | 'location' | 'featured' | 'featured_at' | 'plan' | 'expires_at'
+  'id' | 'owner_id' | 'views_count' | 'ref' | 'created_at' | 'updated_at' | 'published_at' | 'location' | 'featured' | 'featured_at' | 'plan' | 'expires_at'
 > & {
   latitude?: number | null;
   longitude?: number | null;
@@ -275,6 +275,61 @@ export async function getProperty(
   // Registrar vista (sin bloquear)
   void supabase.rpc('increment_property_views', { prop_id: id });
   return data as PropertyWithImages;
+}
+
+const DETAIL_SELECT =
+  '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, avatar_url, company, verified)';
+
+/** Obtener un inmueble por su número de referencia (para URLs amigables). */
+export async function getPropertyByRef(
+  supabase: SupabaseClient,
+  ref: number,
+): Promise<PropertyWithImages | null> {
+  const { data, error } = await supabase
+    .from('properties')
+    .select(DETAIL_SELECT)
+    .eq('ref', ref)
+    .single();
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+  void supabase.rpc('increment_property_views', { prop_id: data.id });
+  return data as PropertyWithImages;
+}
+
+/** Slug amigable para la URL del inmueble: "apartamento-en-arriendo-el-poblado-1042". */
+export function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function propertySlug(p: {
+  type: string;
+  operation: string;
+  neighborhood: string | null;
+  city: string;
+  ref: number;
+}): string {
+  const opWord = p.operation === 'arriendo' ? 'en arriendo' : 'en venta';
+  const words = [p.type, opWord, p.neighborhood ?? '', p.city]
+    .filter(Boolean)
+    .join(' ');
+  return `${slugify(words)}-${p.ref}`;
+}
+
+export function propertyPath(p: {
+  type: string;
+  operation: string;
+  neighborhood: string | null;
+  city: string;
+  ref: number;
+}): string {
+  return `/inmueble/${propertySlug(p)}`;
 }
 
 /** Inmuebles del usuario autenticado (incluye borradores/pausados). */

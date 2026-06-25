@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'config.dart';
 import 'theme.dart';
 import 'services/favorites_manager.dart';
@@ -7,6 +8,7 @@ import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es');
   await Supabase.initialize(
     url: Config.supabaseUrl,
     anonKey: Config.supabaseAnonKey,

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
-  getProperty,
   getAmenities,
+  propertyPath,
   formatPrice,
   OPERATION_LABELS,
   TYPE_LABELS,
@@ -12,6 +12,7 @@ import {
   type PropertyWithImages,
 } from "@inmo/shared";
 import { getServerSupabase, SITE_URL } from "@/lib/supabase-server";
+import { getPropertyBySlug } from "@/lib/listings";
 import { Header } from "@/components/Header";
 import { Gallery } from "@/components/Gallery";
 import { FavoriteButton } from "@/components/FavoriteButton";
@@ -23,11 +24,11 @@ export const revalidate = 60; // re-genera cada minuto
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = getServerSupabase();
-  const p = await getProperty(supabase, id).catch(() => null);
+  const p = await getPropertyBySlug(supabase, slug).catch(() => null);
   if (!p) return { title: "Inmueble no encontrado" };
 
   const op =
@@ -40,15 +41,16 @@ export async function generateMetadata({
   const cover =
     p.property_images?.find((i) => i.is_cover)?.url ??
     p.property_images?.[0]?.url;
+  const path = propertyPath(p);
 
   return {
     title,
     description,
-    alternates: { canonical: `/inmueble/${id}` },
+    alternates: { canonical: path },
     openGraph: {
       title,
       description,
-      url: `${SITE_URL}/inmueble/${id}`,
+      url: `${SITE_URL}${path}`,
       type: "website",
       images: cover ? [{ url: cover }] : undefined,
     },
@@ -58,12 +60,12 @@ export async function generateMetadata({
 export default async function PropertyDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = getServerSupabase();
   const [property, amenities] = await Promise.all([
-    getProperty(supabase, id).catch(() => null),
+    getPropertyBySlug(supabase, slug).catch(() => null),
     getAmenities(supabase).catch(() => [] as Amenity[]),
   ]);
 
@@ -71,6 +73,7 @@ export default async function PropertyDetailPage({
 
   const owner = property.owner;
   const wppNumber = owner?.whatsapp ?? owner?.phone;
+  const path = propertyPath(property);
   const cover =
     property.property_images?.find((i) => i.is_cover)?.url ??
     property.property_images?.[0]?.url;
@@ -81,7 +84,7 @@ export default async function PropertyDetailPage({
     "@type": "RealEstateListing",
     name: property.title,
     description: property.description ?? undefined,
-    url: `${SITE_URL}/inmueble/${id}`,
+    url: `${SITE_URL}${path}`,
     image: cover ? [cover] : undefined,
     datePosted: property.published_at ?? undefined,
     address: {
@@ -107,7 +110,11 @@ export default async function PropertyDetailPage({
       />
       <Header />
       <main className="mx-auto max-w-5xl px-4 py-6">
-        <OwnerActions id={id} ownerId={property.owner_id} />
+        <OwnerActions
+          id={property.id}
+          ownerId={property.owner_id}
+          editHref={`${path}/editar`}
+        />
 
         <Gallery images={property.property_images ?? []} title={property.title} />
 

@@ -77,6 +77,48 @@ class PropertyService {
     return Property.fromJson(data);
   }
 
+  /// Registrar un lead/consulta de un interesado.
+  static Future<void> createInquiry({
+    required String propertyId,
+    String? senderId,
+    required String name,
+    String? email,
+    String? phone,
+    required String message,
+  }) async {
+    await supabase.from('inquiries').insert({
+      'property_id': propertyId,
+      'sender_id': senderId,
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'message': message,
+    });
+  }
+
+  /// Leads de un inmueble (solo el dueño, por RLS).
+  static Future<List<Map<String, dynamic>>> inquiries(String propertyId) async {
+    final data = await supabase
+        .from('inquiries')
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('created_at', ascending: false);
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Mis inmuebles con nº de contactos (las vistas vienen en el inmueble).
+  static Future<List<(Property, int)>> myPropertiesWithStats(
+      String ownerId) async {
+    final props = await myProperties(ownerId);
+    final data = await supabase.from('inquiries').select('property_id');
+    final counts = <String, int>{};
+    for (final r in (data as List)) {
+      final id = r['property_id'] as String;
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    return props.map((p) => (p, counts[p.id] ?? 0)).toList();
+  }
+
   /// Inmuebles del usuario actual.
   static Future<List<Property>> myProperties(String ownerId) async {
     final data = await supabase

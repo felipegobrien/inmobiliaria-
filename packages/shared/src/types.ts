@@ -78,6 +78,7 @@ export interface Property {
   nearby_places: string[];
 
   views_count: number;
+  ref: number;
   featured: boolean;
   featured_at: string | null;
   plan: string;

@@ -9,9 +9,11 @@ import { useAuth } from "@/lib/auth";
 export function OwnerActions({
   id,
   ownerId,
+  editHref,
 }: {
   id: string;
   ownerId: string;
+  editHref: string;
 }) {
   const router = useRouter();
   const { user } = useAuth();
@@ -32,7 +34,7 @@ export function OwnerActions({
   return (
     <div className="mb-4 flex gap-2">
       <Link
-        href={`/inmueble/${id}/editar`}
+        href={editHref}
         className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
       >
         Editar

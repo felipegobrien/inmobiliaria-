@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { propertyPath } from "@inmo/shared";
 import { getServerSupabase, SITE_URL } from "@/lib/supabase-server";
 import { slugify } from "@/lib/slug";
 
@@ -8,13 +9,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = getServerSupabase();
   const { data } = await supabase
     .from("properties")
-    .select("id, city, type, operation, updated_at")
+    .select("id, ref, city, neighborhood, type, operation, updated_at")
     .eq("status", "activo");
 
   const props =
     (data ?? []) as {
       id: string;
+      ref: number;
       city: string;
+      neighborhood: string | null;
       type: string;
       operation: string;
       updated_at: string;
@@ -24,10 +27,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: SITE_URL, changeFrequency: "daily", priority: 1 },
   ];
 
-  // Ficha de cada inmueble
+  // Ficha de cada inmueble (URL amigable con referencia)
   for (const p of props) {
     urls.push({
-      url: `${SITE_URL}/inmueble/${p.id}`,
+      url: `${SITE_URL}${propertyPath(p)}`,
       lastModified: p.updated_at,
       changeFrequency: "weekly",
       priority: 0.8,
