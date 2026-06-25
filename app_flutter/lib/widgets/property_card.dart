@@ -4,19 +4,33 @@ import '../models/property.dart';
 import '../theme.dart';
 import '../services/favorites_manager.dart';
 
-class PropertyCard extends StatelessWidget {
+class PropertyCard extends StatefulWidget {
   final Property property;
   final VoidCallback onTap;
 
   const PropertyCard({super.key, required this.property, required this.onTap});
 
   @override
+  State<PropertyCard> createState() => _PropertyCardState();
+}
+
+class _PropertyCardState extends State<PropertyCard> {
+  final _pageCtrl = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _pageCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final cover = property.coverUrl;
-    final imgCount = property.images.length;
+    final property = widget.property;
+    final images = property.images;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 18),
         decoration: BoxDecoration(
@@ -27,7 +41,6 @@ class PropertyCard extends StatelessWidget {
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.14),
               blurRadius: 18,
-              spreadRadius: 0,
               offset: const Offset(0, 8),
             ),
           ],
@@ -36,33 +49,38 @@ class PropertyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Imagen con badges "burbuja"
+            // Carrusel de fotos
             Stack(
               children: [
                 AspectRatio(
-                  aspectRatio: 4 / 3,
-                  child: cover != null
-                      ? CachedNetworkImage(
-                          imageUrl: cover,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          placeholder: (_, __) =>
-                              Container(color: const Color(0xFFF1F1F3)),
-                          errorWidget: (_, __, ___) => Container(
-                            color: const Color(0xFFF1F1F3),
-                            alignment: Alignment.center,
-                            child: const Icon(Icons.image_not_supported_outlined,
-                                color: Colors.grey),
-                          ),
-                        )
-                      : Container(
+                  aspectRatio: 16 / 10,
+                  child: images.isEmpty
+                      ? Container(
                           color: const Color(0xFFF1F1F3),
                           alignment: Alignment.center,
                           child: const Text('Sin foto',
                               style: TextStyle(color: Colors.grey)),
+                        )
+                      : PageView.builder(
+                          controller: _pageCtrl,
+                          itemCount: images.length,
+                          onPageChanged: (i) => setState(() => _page = i),
+                          itemBuilder: (_, i) => CachedNetworkImage(
+                            imageUrl: images[i].url,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            placeholder: (_, __) =>
+                                Container(color: const Color(0xFFF1F1F3)),
+                            errorWidget: (_, __, ___) => Container(
+                              color: const Color(0xFFF1F1F3),
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.image_not_supported_outlined,
+                                  color: Colors.grey),
+                            ),
+                          ),
                         ),
                 ),
-                // Destacado u operación (pill blanco translúcido)
+                // Operación / Destacado
                 Positioned(
                   left: 12,
                   top: 12,
@@ -92,7 +110,7 @@ class PropertyCard extends StatelessWidget {
                           ),
                         ),
                 ),
-                // Favorito (círculo blanco)
+                // Favorito
                 Positioned(
                   right: 12,
                   top: 12,
@@ -126,31 +144,29 @@ class PropertyCard extends StatelessWidget {
                     },
                   ),
                 ),
-                // Contador de fotos
-                if (imgCount > 1)
+                // Indicador de fotos (puntos)
+                if (images.length > 1)
                   Positioned(
-                    left: 12,
-                    bottom: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.photo_library_outlined,
-                              color: Colors.white, size: 13),
-                          const SizedBox(width: 4),
-                          Text('1/$imgCount',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                      ),
+                    bottom: 10,
+                    left: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (var i = 0; i < images.length; i++)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            width: i == _page ? 16 : 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: i == _page
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
               ],
@@ -181,7 +197,6 @@ class PropertyCard extends StatelessWidget {
                         color: AppColors.textMuted, fontSize: 14),
                   ),
                   const SizedBox(height: 10),
-                  // Specs con iconos
                   Row(
                     children: [
                       _spec(Icons.king_bed_outlined, '${property.bedrooms} Habs.'),
@@ -255,5 +270,6 @@ class PropertyCard extends StatelessWidget {
         ],
       );
 
-  String _area(num v) => v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+  String _area(num v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 }

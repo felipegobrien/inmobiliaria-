@@ -158,7 +158,10 @@ export async function searchProperties(
   if (filters.type) query = query.eq('type', filters.type);
   if (filters.city) query = query.ilike('city', filters.city);
   if (filters.search) {
-    query = query.or(`title.ilike.%${filters.search}%,neighborhood.ilike.%${filters.search}%`);
+    const s = filters.search;
+    query = query.or(
+      `title.ilike.%${s}%,neighborhood.ilike.%${s}%,city.ilike.%${s}%,department.ilike.%${s}%,description.ilike.%${s}%`,
+    );
   }
   if (filters.minPrice != null) query = query.gte('price', filters.minPrice);
   if (filters.maxPrice != null) query = query.lte('price', filters.maxPrice);

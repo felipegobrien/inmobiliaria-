@@ -26,7 +26,9 @@ class PropertyService {
       q = q.ilike('city', f.city!);
     }
     if (f.search != null && f.search!.isNotEmpty) {
-      q = q.or('title.ilike.%${f.search}%,neighborhood.ilike.%${f.search}%');
+      final s = f.search!;
+      q = q.or('title.ilike.%$s%,neighborhood.ilike.%$s%,city.ilike.%$s%,'
+          'department.ilike.%$s%,description.ilike.%$s%');
     }
     if (f.minPrice != null) q = q.gte('price', f.minPrice!);
     if (f.maxPrice != null) q = q.lte('price', f.maxPrice!);
