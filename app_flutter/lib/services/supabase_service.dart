@@ -68,7 +68,7 @@ class PropertyService {
     final data = await supabase
         .from('properties')
         .select(
-            '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, company, role)')
+            '*, property_images(*), property_amenities(amenity_id), owner:profiles!properties_owner_id_fkey(id, full_name, phone, whatsapp, company, role, avatar_url)')
         .eq('id', id)
         .maybeSingle();
     if (data == null) return null;
