@@ -322,8 +322,145 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
               ),
             ],
           ),
+          const Divider(height: 18),
+          // Estado / vencimiento + republicar
+          Row(
+            children: [
+              Expanded(child: _statusLine(p)),
+              OutlinedButton.icon(
+                onPressed: () => _republish(p),
+                icon: const Icon(Icons.autorenew, size: 16),
+                label: const Text('Republicar'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryDark,
+                  visualDensity: VisualDensity.compact,
+                  side: const BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Marcar vendido / arrendado
+          if (p.status == 'vendido' || p.status == 'arrendado')
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _setStatus(p, 'activo'),
+                icon: const Icon(Icons.undo, size: 16),
+                label: const Text('Reactivar publicación'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _markClosed(p),
+                icon: const Icon(Icons.check_circle, size: 18),
+                label: Text(p.operation == 'arriendo'
+                    ? 'Marcar como arrendado'
+                    : 'Marcar como vendido'),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Widget _statusLine(Property p) {
+    if (p.status == 'vendido' || p.status == 'arrendado') {
+      return Row(
+        children: [
+          const Icon(Icons.check_circle, size: 16, color: AppColors.primary),
+          const SizedBox(width: 4),
+          Text(p.status == 'vendido' ? 'Vendido' : 'Arrendado',
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryDark)),
+        ],
+      );
+    }
+    final exp = p.expiresAt;
+    String text;
+    Color color = AppColors.textMuted;
+    if (exp == null) {
+      text = 'Sin vencimiento';
+    } else {
+      final days = exp.difference(DateTime.now()).inDays;
+      if (days < 0) {
+        text = 'Vencida';
+        color = AppColors.danger;
+      } else if (days == 0) {
+        text = 'Vence hoy';
+        color = AppColors.danger;
+      } else {
+        text = 'Vence en $days día${days == 1 ? '' : 's'}';
+        if (days <= 5) color = const Color(0xFFD97706);
+      }
+    }
+    return Row(
+      children: [
+        Icon(Icons.schedule, size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(text, style: TextStyle(fontSize: 13, color: color)),
+      ],
+    );
+  }
+
+  Future<void> _republish(Property p) async {
+    try {
+      await PropertyService.republish(p.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Publicación renovada por 30 días.')));
+      }
+      _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _setStatus(Property p, String status) async {
+    try {
+      await PropertyService.setStatus(p.id, status);
+      _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _markClosed(Property p) async {
+    final isRent = p.operation == 'arriendo';
+    final status = isRent ? 'arrendado' : 'vendido';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(isRent ? '¿Marcar como arrendado?' : '¿Marcar como vendido?'),
+        content: const Text(
+            'La publicación dejará de mostrarse en las búsquedas. Podrás reactivarla cuando quieras.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirmar')),
+        ],
+      ),
+    );
+    if (ok == true) _setStatus(p, status);
   }
 }
