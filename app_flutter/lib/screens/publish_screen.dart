@@ -150,6 +150,18 @@ class _PublishScreenState extends State<PublishScreen> {
         'published_at': DateTime.now().toIso8601String(),
       };
 
+      // Geocodificar para que aparezca en el mapa (no bloquea si falla).
+      final geoQuery = [
+        _address.text.trim(),
+        _neighborhood.text.trim(),
+        _city.text.trim(),
+      ].where((e) => e.isNotEmpty).join(', ');
+      final coords = await PropertyService.geocode(geoQuery);
+      if (coords != null) {
+        payload['location'] =
+            'SRID=4326;POINT(${coords.lng} ${coords.lat})';
+      }
+
       if (isEdit) {
         // Mantener plan/vencimiento/destacado tal como estaban.
         final p = widget.initial!;

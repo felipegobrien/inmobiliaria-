@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../services/supabase_service.dart';
 import '../widgets/property_card.dart';
 import 'detail_screen.dart';
+import 'map_screen.dart';
 
 const _types = ['apartamento', 'casa', 'apartaestudio', 'local', 'oficina',
     'bodega', 'lote', 'finca', 'consultorio', 'parqueadero'];
@@ -76,9 +77,12 @@ class _SearchScreenState extends State<SearchScreen> {
     _load();
   }
 
-  void _mapSoon() => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mapa próximamente 🗺️')),
-      );
+  void _openMap() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MapScreen()),
+    );
+  }
 
   Future<void> _openFilters() async {
     final result = await showModalBottomSheet<PropertyFilters>(
@@ -196,7 +200,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   const SizedBox(width: 10),
                   GestureDetector(
-                    onTap: _mapSoon,
+                    onTap: _openMap,
                     child: Container(
                       padding:
                           const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
@@ -210,7 +214,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           Icon(Icons.map_outlined,
                               size: 18, color: AppColors.text),
                           SizedBox(width: 6),
-                          Text('Buscar por mapa',
+                          Text('Mapa',
                               style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.text)),

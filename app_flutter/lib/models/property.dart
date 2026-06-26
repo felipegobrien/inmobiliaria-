@@ -100,6 +100,64 @@ class Plan {
       );
 }
 
+/// Inmueble liviano para los pines del mapa (estilo Airbnb).
+class MapPin {
+  final String id;
+  final String title;
+  final int price;
+  final String operation;
+  final String type;
+  final String? neighborhood;
+  final String city;
+  final int bedrooms;
+  final int bathrooms;
+  final bool featured;
+  final String plan;
+  final int ref;
+  final double lat;
+  final double lng;
+  final String? coverUrl;
+
+  MapPin({
+    required this.id,
+    required this.title,
+    required this.price,
+    required this.operation,
+    required this.type,
+    this.neighborhood,
+    required this.city,
+    required this.bedrooms,
+    required this.bathrooms,
+    required this.featured,
+    required this.plan,
+    required this.ref,
+    required this.lat,
+    required this.lng,
+    this.coverUrl,
+  });
+
+  bool get isPremium => plan == 'premium';
+  bool get isOrangeFeatured => featured && !isPremium;
+
+  factory MapPin.fromJson(Map<String, dynamic> j) => MapPin(
+        id: j['id'] as String,
+        title: j['title'] as String,
+        price: (j['price'] as num).toInt(),
+        operation: j['operation'] as String,
+        type: j['type'] as String,
+        neighborhood: j['neighborhood'] as String?,
+        city: j['city'] as String,
+        bedrooms: (j['bedrooms'] as num?)?.toInt() ?? 0,
+        bathrooms: (j['bathrooms'] as num?)?.toInt() ?? 0,
+        featured: (j['featured'] ?? false) as bool,
+        plan: (j['plan'] ?? 'estandar') as String,
+        ref: (j['ref'] as num?)?.toInt() ?? 0,
+        lat: (j['lat'] as num).toDouble(),
+        lng: (j['lng'] as num).toDouble(),
+        coverUrl: j['cover_url'] as String?,
+      );
+}
+
 class Amenity {
   final int id;
   final String name;

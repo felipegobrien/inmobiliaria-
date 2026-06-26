@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config.dart';
 import '../models/property.dart';
@@ -69,6 +71,49 @@ class PropertyService {
       ...list.where((p) => !p.featured && !p.isPremium),
     ];
     return list;
+  }
+
+  /// Inmuebles dentro del recuadro visible del mapa (estilo Airbnb).
+  static Future<List<MapPin>> propertiesInBounds({
+    required double minLng,
+    required double minLat,
+    required double maxLng,
+    required double maxLat,
+    int limit = 300,
+  }) async {
+    final data = await supabase.rpc('properties_in_bounds', params: {
+      'min_lng': minLng,
+      'min_lat': minLat,
+      'max_lng': maxLng,
+      'max_lat': maxLat,
+      'lim': limit,
+    });
+    return (data as List)
+        .map((e) => MapPin.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Geocodifica una dirección/barrio/ciudad a coordenadas (OpenStreetMap).
+  /// Devuelve null si no encuentra nada. No bloquea la publicación si falla.
+  static Future<({double lat, double lng})?> geocode(String query) async {
+    if (query.trim().isEmpty) return null;
+    try {
+      final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?format=json&limit=1'
+          '&countrycodes=co&q=${Uri.encodeQueryComponent(query)}');
+      final r = await http.get(uri, headers: {
+        'User-Agent': 'inmobiliaria-app/1.0 (contacto@inmobiliaria.app)',
+      }).timeout(const Duration(seconds: 8));
+      if (r.statusCode != 200) return null;
+      final list = jsonDecode(r.body) as List;
+      if (list.isEmpty) return null;
+      return (
+        lat: double.parse(list.first['lat'] as String),
+        lng: double.parse(list.first['lon'] as String),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Inmueble con imágenes y datos del dueño.
