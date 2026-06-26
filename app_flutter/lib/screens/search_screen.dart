@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
+import '../services/places_service.dart';
 import '../widgets/property_card.dart';
 import 'detail_screen.dart';
 import 'map_screen.dart';
@@ -30,7 +31,9 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Amenity> _amenities = [];
   bool _loading = true;
   Timer? _debounce;
+  Timer? _sugDebounce;
   final _searchCtrl = TextEditingController();
+  List<PlaceSuggestion> _placeSug = [];
 
   @override
   void initState() {
@@ -44,6 +47,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _sugDebounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -67,13 +71,31 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {}); // refresca el botón de limpiar (x)
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), _load);
+    // Sugerencias de lugares (autocompletar)
+    _sugDebounce?.cancel();
+    if (v.trim().length < 3) {
+      setState(() => _placeSug = []);
+    } else {
+      _sugDebounce = Timer(const Duration(milliseconds: 300), () async {
+        final s = await PlacesService.autocomplete(v.trim());
+        if (mounted) setState(() => _placeSug = s);
+      });
+    }
+  }
+
+  void _pickPlace(PlaceSuggestion s) {
+    FocusScope.of(context).unfocus();
+    _searchCtrl.text = s.main;
+    _filters.search = s.main;
+    setState(() => _placeSug = []);
+    _load();
   }
 
   void _clearSearch() {
     _searchCtrl.clear();
     _filters.search = null;
     _debounce?.cancel();
-    setState(() {});
+    setState(() => _placeSug = []);
     _load();
   }
 
@@ -147,6 +169,58 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
             ),
+
+            // Sugerencias de lugares (autocompletar)
+            if (_placeSug.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    for (final s in _placeSug.take(5))
+                      InkWell(
+                        onTap: () => _pickPlace(s),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined,
+                                  size: 18, color: AppColors.textMuted),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(s.main,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600)),
+                                    if (s.secondary.isNotEmpty)
+                                      Text(s.secondary,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textMuted)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
 
             // Botón Filtros + Orden
             Padding(

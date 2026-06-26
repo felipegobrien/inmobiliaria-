@@ -10,6 +10,7 @@ import {
   type PropertyWithImages,
 } from "@inmo/shared";
 import { supabase } from "@/lib/supabase";
+import { placesAutocomplete, type PlaceSuggestion } from "@/lib/places";
 import { Filters } from "@/components/Filters";
 import { PropertyCard } from "@/components/PropertyCard";
 import { Header } from "@/components/Header";
@@ -29,6 +30,25 @@ export default function Home() {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [placeSug, setPlaceSug] = useState<PlaceSuggestion[]>([]);
+
+  useEffect(() => {
+    const q = filters.search ?? "";
+    if (q.length < 3) {
+      setPlaceSug([]);
+      return;
+    }
+    let active = true;
+    const t = setTimeout(() => {
+      placesAutocomplete(q)
+        .then((s) => active && setPlaceSug(s))
+        .catch(() => {});
+    }, 300);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [filters.search]);
 
   useEffect(() => {
     let active = true;
@@ -98,13 +118,42 @@ export default function Home() {
                 })}
               </div>
 
-              <input
-                type="text"
-                placeholder="Ciudad, barrio o palabra clave…"
-                value={filters.search ?? ""}
-                onChange={(e) => set({ search: e.target.value || undefined })}
-                className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 outline-none focus:border-emerald-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Ciudad, barrio o palabra clave…"
+                  value={filters.search ?? ""}
+                  onChange={(e) =>
+                    set({ search: e.target.value || undefined })
+                  }
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 outline-none focus:border-emerald-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                />
+                {placeSug.length > 0 && (
+                  <ul className="absolute left-0 right-0 z-30 mt-1 max-h-60 overflow-auto rounded-xl border border-zinc-200 bg-white text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+                    {placeSug.map((s) => (
+                      <li key={s.placeId}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            set({ search: s.main });
+                            setPlaceSug([]);
+                          }}
+                          className="block w-full px-4 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        >
+                          <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                            {s.main}
+                          </span>
+                          {s.secondary && (
+                            <span className="block text-xs text-zinc-500">
+                              {s.secondary}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
               <button
                 onClick={() => setShowFilters((v) => !v)}
