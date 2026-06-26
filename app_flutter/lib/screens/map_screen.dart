@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
@@ -8,24 +7,8 @@ import 'package:latlong2/latlong.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
+import '../widgets/property_card.dart';
 import 'detail_screen.dart';
-
-String _area(num v) =>
-    v == v.roundToDouble() ? v.toInt().toString() : v.toString();
-
-/// Etiqueta tipo "Arriendo casa en El Poblado" / "Venta apartamento en Laureles".
-String pinLabel(MapPin p) {
-  final op = p.operation == 'arriendo'
-      ? 'Arriendo'
-      : p.operation == 'venta_arriendo'
-          ? 'Venta y arriendo'
-          : 'Venta';
-  final t = (typeLabels[p.type] ?? p.type).toLowerCase();
-  final place = (p.neighborhood != null && p.neighborhood!.isNotEmpty)
-      ? p.neighborhood!
-      : p.city;
-  return '$op $t en ${titleCase(place)}';
-}
 
 class MapScreen extends StatefulWidget {
   /// Centro inicial opcional (p. ej. la ciudad que se está buscando).
@@ -41,7 +24,23 @@ class _MapScreenState extends State<MapScreen> {
   Timer? _debounce;
   List<MapPin> _pins = [];
   MapPin? _selected;
+  Property? _selectedProperty; // ficha completa del pin tocado
   bool _loading = false;
+
+  Future<void> _selectPin(MapPin p) async {
+    setState(() {
+      _selected = p;
+      _selectedProperty = null;
+    });
+    final prop = await PropertyService.getById(p.id, registerView: false);
+    if (!mounted || _selected?.id != p.id) return;
+    setState(() => _selectedProperty = prop);
+  }
+
+  void _closeCard() => setState(() {
+        _selected = null;
+        _selectedProperty = null;
+      });
 
   // Centro por defecto: Colombia (Bogotá).
   static const _fallback = LatLng(4.7110, -74.0721);
@@ -117,6 +116,7 @@ class _MapScreenState extends State<MapScreen> {
         // Si el pin seleccionado ya no está en el área, lo ocultamos.
         if (_selected != null && !pins.any((p) => p.id == _selected!.id)) {
           _selected = null;
+          _selectedProperty = null;
         }
       });
     } catch (_) {
@@ -132,7 +132,12 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: _selected == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _closeCard(); // back cierra solo la ficha
+      },
+      child: Scaffold(
       body: Stack(
         children: [
           FlutterMap(
@@ -151,7 +156,7 @@ class _MapScreenState extends State<MapScreen> {
               onPositionChanged: (camera, hasGesture) {
                 if (hasGesture) _scheduleReload();
               },
-              onTap: (_, __) => setState(() => _selected = null),
+              onTap: (_, __) => _closeCard(),
             ),
             children: [
               TileLayer(
@@ -176,7 +181,7 @@ class _MapScreenState extends State<MapScreen> {
                         child: _PricePill(
                           pin: p,
                           selected: _selected?.id == p.id,
-                          onTap: () => setState(() => _selected = p),
+                          onTap: () => _selectPin(p),
                         ),
                       ),
                   ],
@@ -210,18 +215,16 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          // Botón localizarme
-          Positioned(
-            right: 12,
-            bottom: (_selected != null
-                    ? 140
-                    : MediaQuery.of(context).padding.bottom) +
-                24,
-            child: _circleButton(
-              icon: Icons.my_location,
-              onTap: () => _locate(),
+          // Botón localizarme (se oculta cuando hay una ficha abierta)
+          if (_selected == null)
+            Positioned(
+              right: 12,
+              bottom: MediaQuery.of(context).padding.bottom + 24,
+              child: _circleButton(
+                icon: Icons.my_location,
+                onTap: () => _locate(),
+              ),
             ),
-          ),
 
           // Indicador de carga + contador
           Positioned(
@@ -266,23 +269,79 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          // Tarjeta del inmueble seleccionado
+          // Ficha del inmueble seleccionado (la misma de Buscar)
           if (_selected != null)
             Positioned(
-              left: 12,
-              right: 12,
-              bottom: MediaQuery.of(context).padding.bottom + 14,
-              child: _SelectedCard(
-                pin: _selected!,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          DetailScreen(propertyId: _selected!.id)),
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight:
+                              MediaQuery.of(context).size.height * 0.62,
+                        ),
+                        child: SingleChildScrollView(
+                          child: _selectedProperty == null
+                              ? Container(
+                                  height: 120,
+                                  margin: const EdgeInsets.only(bottom: 18),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const CircularProgressIndicator(
+                                      color: AppColors.primary),
+                                )
+                              : PropertyCard(
+                                  property: _selectedProperty!,
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => DetailScreen(
+                                            propertyId: _selected!.id)),
+                                  ),
+                                ),
+                        ),
+                      ),
+                      // Botón cerrar
+                      Positioned(
+                        right: 6,
+                        top: 6,
+                        child: GestureDetector(
+                          onTap: _closeCard,
+                          child: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                    color:
+                                        Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 6),
+                              ],
+                            ),
+                            child: const Icon(Icons.close,
+                                size: 20, color: AppColors.text),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
         ],
+      ),
       ),
     );
   }
@@ -357,119 +416,5 @@ class _PricePill extends StatelessWidget {
     }
     if (v >= 1000) return '\$${(v / 1000).round()}K';
     return '\$$v';
-  }
-}
-
-// Tarjeta inferior con la foto y datos del inmueble seleccionado.
-class _SelectedCard extends StatelessWidget {
-  final MapPin pin;
-  final VoidCallback onTap;
-  const _SelectedCard({required this.pin, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2), blurRadius: 14),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 120,
-              height: 130,
-              child: (pin.coverUrl != null && pin.coverUrl!.isNotEmpty)
-                  ? CachedNetworkImage(
-                      imageUrl: pin.coverUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) =>
-                          Container(color: const Color(0xFFF1F1F3)),
-                      errorWidget: (_, __, ___) => Container(
-                        color: const Color(0xFFF1F1F3),
-                        child: const Icon(Icons.image_not_supported_outlined,
-                            color: Colors.grey),
-                      ),
-                    )
-                  : Container(
-                      color: const Color(0xFFF1F1F3),
-                      child: const Icon(Icons.home_outlined, color: Colors.grey),
-                    ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      pinLabel(pin),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          height: 1.2),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      formatPrice(pin.price) +
-                          (pin.operation != 'venta' ? ' / mes' : ''),
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      [pin.neighborhood, pin.city]
-                          .where((e) => e != null && e.isNotEmpty)
-                          .join(', '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 13),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.king_bed_outlined,
-                            size: 16, color: AppColors.textMuted),
-                        const SizedBox(width: 4),
-                        Text('${pin.bedrooms}',
-                            style: const TextStyle(fontSize: 13)),
-                        const SizedBox(width: 12),
-                        const Icon(Icons.bathtub_outlined,
-                            size: 16, color: AppColors.textMuted),
-                        const SizedBox(width: 4),
-                        Text('${pin.bathrooms}',
-                            style: const TextStyle(fontSize: 13)),
-                        if (pin.areaM2 != null) ...[
-                          const SizedBox(width: 12),
-                          const Icon(Icons.straighten,
-                              size: 16, color: AppColors.textMuted),
-                          const SizedBox(width: 4),
-                          Text('${_area(pin.areaM2!)} m²',
-                              style: const TextStyle(fontSize: 13)),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(right: 8),
-              child: Icon(Icons.chevron_right, color: AppColors.textMuted),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

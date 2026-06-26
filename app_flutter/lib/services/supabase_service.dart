@@ -117,7 +117,8 @@ class PropertyService {
   }
 
   /// Inmueble con imágenes y datos del dueño.
-  static Future<Property?> getById(String id) async {
+  /// [registerView] cuenta una vista (no se cuenta en la vista previa del mapa).
+  static Future<Property?> getById(String id, {bool registerView = true}) async {
     final data = await supabase
         .from('properties')
         .select(
@@ -125,11 +126,12 @@ class PropertyService {
         .eq('id', id)
         .maybeSingle();
     if (data == null) return null;
-    // Registrar vista (sin bloquear)
-    supabase.rpc('increment_property_views', params: {'prop_id': id}).then(
-      (_) {},
-      onError: (_) {},
-    );
+    if (registerView) {
+      supabase.rpc('increment_property_views', params: {'prop_id': id}).then(
+        (_) {},
+        onError: (_) {},
+      );
+    }
     return Property.fromJson(data);
   }
 

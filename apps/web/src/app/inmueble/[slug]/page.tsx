@@ -18,6 +18,7 @@ import { Gallery } from "@/components/Gallery";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { OwnerActions } from "@/components/OwnerActions";
 import { ContactPanel } from "@/components/ContactPanel";
+import { ReportButton } from "@/components/ReportButton";
 import { ShareButton } from "@/components/ShareButton";
 
 export const revalidate = 60; // re-genera cada minuto
@@ -236,6 +237,8 @@ export default async function PropertyDetailPage({
                 </div>
               </div>
             )}
+
+            <ReportButton propertyId={property.id} />
           </div>
 
           <ContactPanel

@@ -522,6 +522,23 @@ export async function getAgencyProperties(
   return (data ?? []) as PropertyWithImages[];
 }
 
+/** Denunciar una publicación. */
+export async function createReport(
+  supabase: SupabaseClient,
+  propertyId: string,
+  reason: string,
+  details?: string,
+): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await supabase.from('property_reports').insert({
+    property_id: propertyId,
+    reporter_id: auth.user?.id ?? null,
+    reason,
+    details: details ?? null,
+  });
+  if (error) throw error;
+}
+
 /** Inmueble liviano para los pines del mapa (estilo Airbnb). */
 export interface MapPin {
   id: string;
