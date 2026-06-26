@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -65,6 +71,38 @@ function BoundsWatcher({
   return null;
 }
 
+// Centra el mapa en la ubicación del usuario al abrir, y expone el botón.
+function LocateControl({ initial }: { initial: boolean }) {
+  const map = useMap();
+  const tried = useRef(false);
+
+  const locate = useCallback(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 14),
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }, [map]);
+
+  useEffect(() => {
+    if (initial && !tried.current) {
+      tried.current = true;
+      locate();
+    }
+  }, [initial, locate]);
+
+  return (
+    <button
+      onClick={locate}
+      title="Mi ubicación"
+      className="absolute right-3 top-3 z-[1000] flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl shadow-lg hover:bg-zinc-100"
+    >
+      📍
+    </button>
+  );
+}
+
 export default function SearchMap() {
   const [pins, setPins] = useState<MapPin[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,6 +142,7 @@ export default function SearchMap() {
           attribution='&copy; OpenStreetMap'
         />
         <BoundsWatcher onChange={query} />
+        <LocateControl initial />
         {pins.map((p) => (
           <Marker
             key={p.id}
@@ -141,6 +180,9 @@ export default function SearchMap() {
               )}
             </div>
             <div className="flex flex-1 flex-col justify-center p-3">
+              <p className="truncate text-sm font-bold text-zinc-900">
+                {selected.title}
+              </p>
               <p className="text-lg font-extrabold text-zinc-900">
                 {new Intl.NumberFormat("es-CO", {
                   style: "currency",
@@ -161,6 +203,7 @@ export default function SearchMap() {
               </p>
               <p className="mt-1 text-xs text-zinc-500">
                 {selected.bedrooms} hab · {selected.bathrooms} baños
+                {selected.area_m2 ? ` · ${selected.area_m2} m²` : ""}
               </p>
             </div>
             <button

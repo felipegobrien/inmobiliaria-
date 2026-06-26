@@ -111,6 +111,7 @@ class MapPin {
   final String city;
   final int bedrooms;
   final int bathrooms;
+  final num? areaM2;
   final bool featured;
   final String plan;
   final int ref;
@@ -128,6 +129,7 @@ class MapPin {
     required this.city,
     required this.bedrooms,
     required this.bathrooms,
+    this.areaM2,
     required this.featured,
     required this.plan,
     required this.ref,
@@ -149,6 +151,7 @@ class MapPin {
         city: j['city'] as String,
         bedrooms: (j['bedrooms'] as num?)?.toInt() ?? 0,
         bathrooms: (j['bathrooms'] as num?)?.toInt() ?? 0,
+        areaM2: j['area_m2'] as num?,
         featured: (j['featured'] ?? false) as bool,
         plan: (j['plan'] ?? 'estandar') as String,
         ref: (j['ref'] as num?)?.toInt() ?? 0,

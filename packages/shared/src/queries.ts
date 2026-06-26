@@ -533,6 +533,7 @@ export interface MapPin {
   city: string;
   bedrooms: number;
   bathrooms: number;
+  area_m2: number | null;
   featured: boolean;
   plan: string;
   ref: number;

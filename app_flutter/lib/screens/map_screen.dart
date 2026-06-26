@@ -2,11 +2,15 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
 import 'detail_screen.dart';
+
+String _area(num v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
 class MapScreen extends StatefulWidget {
   /// Centro inicial opcional (p. ej. la ciudad que se está buscando).
@@ -26,6 +30,38 @@ class _MapScreenState extends State<MapScreen> {
 
   // Centro por defecto: Colombia (Bogotá).
   static const _fallback = LatLng(4.7110, -74.0721);
+  bool _located = false;
+
+  /// Pide permiso, obtiene la ubicación y centra el mapa ahí.
+  Future<void> _locate({bool initial = false}) async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        if (!initial) _toast('Activa la ubicación del dispositivo.');
+        return;
+      }
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        if (!initial) _toast('Permiso de ubicación denegado.');
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      ).timeout(const Duration(seconds: 10));
+      if (!mounted) return;
+      _located = true;
+      _map.move(LatLng(pos.latitude, pos.longitude), 14);
+      _reload();
+    } catch (_) {
+      if (!initial && mounted) _toast('No pudimos obtener tu ubicación.');
+    }
+  }
+
+  void _toast(String m) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(m)));
 
   void _scheduleReload() {
     _debounce?.cancel();
@@ -79,7 +115,12 @@ class _MapScreenState extends State<MapScreen> {
               initialZoom: 12,
               minZoom: 4,
               maxZoom: 18,
-              onMapReady: _reload,
+              onMapReady: () {
+                _reload();
+                if (widget.initialCenter == null && !_located) {
+                  _locate(initial: true);
+                }
+              },
               onPositionChanged: (camera, hasGesture) {
                 if (hasGesture) _scheduleReload();
               },
@@ -117,6 +158,19 @@ class _MapScreenState extends State<MapScreen> {
             child: _circleButton(
               icon: Icons.arrow_back,
               onTap: () => Navigator.pop(context),
+            ),
+          ),
+
+          // Botón localizarme
+          Positioned(
+            right: 12,
+            bottom: (_selected != null
+                    ? 140
+                    : MediaQuery.of(context).padding.bottom) +
+                24,
+            child: _circleButton(
+              icon: Icons.my_location,
+              onTap: () => _locate(),
             ),
           ),
 
@@ -285,7 +339,7 @@ class _SelectedCard extends StatelessWidget {
           children: [
             SizedBox(
               width: 120,
-              height: 104,
+              height: 130,
               child: (pin.coverUrl != null && pin.coverUrl!.isNotEmpty)
                   ? CachedNetworkImage(
                       imageUrl: pin.coverUrl!,
@@ -310,6 +364,16 @@ class _SelectedCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Text(
+                      pin.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2),
+                    ),
+                    const SizedBox(height: 3),
                     Text(
                       formatPrice(pin.price) +
                           (pin.operation != 'venta' ? ' / mes' : ''),
@@ -340,6 +404,14 @@ class _SelectedCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text('${pin.bathrooms}',
                             style: const TextStyle(fontSize: 13)),
+                        if (pin.areaM2 != null) ...[
+                          const SizedBox(width: 12),
+                          const Icon(Icons.straighten,
+                              size: 16, color: AppColors.textMuted),
+                          const SizedBox(width: 4),
+                          Text('${_area(pin.areaM2!)} m²',
+                              style: const TextStyle(fontSize: 13)),
+                        ],
                       ],
                     ),
                   ],
