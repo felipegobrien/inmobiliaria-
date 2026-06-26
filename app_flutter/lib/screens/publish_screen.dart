@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
 import '../services/app_events.dart';
 import 'detail_screen.dart';
+import 'location_picker_screen.dart';
 
 const _operations = ['venta', 'arriendo', 'venta_arriendo'];
 
@@ -46,6 +49,7 @@ class _PublishScreenState extends State<PublishScreen> {
   List<Amenity> _amenities = [];
   final Set<int> _selectedAmenities = {};
 
+  LatLng? _picked; // ubicación elegida en el mapa
   bool _saving = false;
 
   @override
@@ -79,6 +83,26 @@ class _PublishScreenState extends State<PublishScreen> {
       _selectedAmenities.addAll(p.amenityIds);
       _existingImages = List.from(p.images);
     }
+  }
+
+  Future<void> _openLocationPicker() async {
+    LatLng center = _picked ?? const LatLng(4.7110, -74.0721);
+    if (_picked == null) {
+      final q = [
+        _address.text.trim(),
+        _neighborhood.text.trim(),
+        _city.text.trim(),
+      ].where((e) => e.isNotEmpty).join(', ');
+      final c = await PropertyService.geocode(q);
+      if (c != null) center = LatLng(c.lat, c.lng);
+    }
+    if (!mounted) return;
+    final res = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+          builder: (_) => LocationPickerScreen(initialCenter: center)),
+    );
+    if (res != null) setState(() => _picked = res);
   }
 
   Future<void> _pickImages() async {
@@ -150,16 +174,23 @@ class _PublishScreenState extends State<PublishScreen> {
         'published_at': DateTime.now().toIso8601String(),
       };
 
-      // Geocodificar para que aparezca en el mapa (no bloquea si falla).
-      final geoQuery = [
-        _address.text.trim(),
-        _neighborhood.text.trim(),
-        _city.text.trim(),
-      ].where((e) => e.isNotEmpty).join(', ');
-      final coords = await PropertyService.geocode(geoQuery);
-      if (coords != null) {
+      // Ubicación en el mapa.
+      if (_picked != null) {
+        // El usuario eligió el pin manualmente: usamos esa ubicación exacta.
         payload['location'] =
-            'SRID=4326;POINT(${coords.lng} ${coords.lat})';
+            'SRID=4326;POINT(${_picked!.longitude} ${_picked!.latitude})';
+      } else if (!isEdit) {
+        // Sin pin: geocodificamos para que igual aparezca en el mapa.
+        final geoQuery = [
+          _address.text.trim(),
+          _neighborhood.text.trim(),
+          _city.text.trim(),
+        ].where((e) => e.isNotEmpty).join(', ');
+        final coords = await PropertyService.geocode(geoQuery);
+        if (coords != null) {
+          payload['location'] =
+              'SRID=4326;POINT(${coords.lng} ${coords.lat})';
+        }
       }
 
       if (isEdit) {
@@ -222,6 +253,7 @@ class _PublishScreenState extends State<PublishScreen> {
       _photos.clear();
       _nearby.clear();
       _selectedAmenities.clear();
+      _picked = null;
       _estrato = null;
       _department = null;
       _operation = 'venta';
@@ -392,6 +424,104 @@ class _PublishScreenState extends State<PublishScreen> {
             ),
             _label('Dirección'),
             TextField(controller: _address),
+
+            _label('Ubicación en el mapa'),
+            GestureDetector(
+              onTap: _openLocationPicker,
+              child: _picked == null
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 22),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF6F6F8),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(Icons.add_location_alt_outlined,
+                              color: AppColors.primary, size: 28),
+                          SizedBox(height: 6),
+                          Text('Toca para ubicar en el mapa',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.text)),
+                          SizedBox(height: 2),
+                          Text('Mueve el pin a la ubicación exacta',
+                              style: TextStyle(
+                                  color: AppColors.textMuted, fontSize: 12)),
+                        ],
+                      ),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        height: 160,
+                        child: Stack(
+                          children: [
+                            FlutterMap(
+                              key: ValueKey(
+                                  '${_picked!.latitude},${_picked!.longitude}'),
+                              options: MapOptions(
+                                initialCenter: _picked!,
+                                initialZoom: 16,
+                                interactionOptions: const InteractionOptions(
+                                    flags: InteractiveFlag.none),
+                              ),
+                              children: [
+                                TileLayer(
+                                  urlTemplate:
+                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName:
+                                      'com.example.inmobiliaria',
+                                ),
+                                MarkerLayer(markers: [
+                                  Marker(
+                                    point: _picked!,
+                                    width: 44,
+                                    height: 44,
+                                    alignment: Alignment.topCenter,
+                                    child: const Icon(Icons.location_pin,
+                                        color: AppColors.primary, size: 40),
+                                  ),
+                                ]),
+                              ],
+                            ),
+                            Positioned(
+                              right: 8,
+                              bottom: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(999),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.15),
+                                        blurRadius: 6),
+                                  ],
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.edit_location_alt_outlined,
+                                        size: 16, color: AppColors.text),
+                                    SizedBox(width: 4),
+                                    Text('Tocar para ajustar',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
 
             // Características
             const SizedBox(height: 20),
