@@ -91,7 +91,7 @@ function LocateControl({ initial }: { initial: boolean }) {
   const locate = useCallback(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 14),
+      (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 16),
       () => {},
       // rápido: permite posición en caché y no fuerza GPS de alta precisión
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },

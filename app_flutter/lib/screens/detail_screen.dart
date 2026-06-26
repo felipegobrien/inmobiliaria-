@@ -10,6 +10,7 @@ import '../services/supabase_service.dart';
 import '../services/favorites_manager.dart';
 import 'publish_screen.dart';
 import 'agency_screen.dart';
+import 'photo_viewer_screen.dart';
 
 class DetailScreen extends StatefulWidget {
   final String propertyId;
@@ -274,8 +275,20 @@ class _DetailScreenState extends State<DetailScreen> {
                     child: const Text('Sin fotos'))
                 : PageView(
                     children: [
-                      for (final img in p.images)
-                        CachedNetworkImage(imageUrl: img.url, fit: BoxFit.cover),
+                      for (var i = 0; i < p.images.length; i++)
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PhotoViewerScreen(
+                                images: p.images.map((e) => e.url).toList(),
+                                initialIndex: i,
+                              ),
+                            ),
+                          ),
+                          child: CachedNetworkImage(
+                              imageUrl: p.images[i].url, fit: BoxFit.cover),
+                        ),
                     ],
                   ),
           ),
@@ -536,6 +549,17 @@ class _DetailScreenState extends State<DetailScreen> {
                       ),
                     ),
                   ),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () => _showReportSheet(p),
+                      icon: const Icon(Icons.flag_outlined,
+                          size: 18, color: AppColors.textMuted),
+                      label: const Text('Denunciar publicación',
+                          style: TextStyle(color: AppColors.textMuted)),
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -543,6 +567,110 @@ class _DetailScreenState extends State<DetailScreen> {
         ],
       ),
     );
+  }
+
+  static const _reportReasons = [
+    'Información falsa o engañosa',
+    'Precio incorrecto',
+    'Ya no está disponible / vendido',
+    'Las fotos no corresponden',
+    'Posible estafa o fraude',
+    'Publicación duplicada',
+    'Contenido ofensivo o inapropiado',
+    'Datos de contacto incorrectos',
+  ];
+
+  Future<void> _showReportSheet(Property p) async {
+    String? selected;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setM) => Padding(
+          padding: EdgeInsets.only(
+              left: 8,
+              right: 8,
+              top: 8,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                  MediaQuery.of(ctx).padding.bottom +
+                  12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 4, bottom: 10),
+                  decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
+                child: Text('Denunciar publicación',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 0, 12, 6),
+                child: Text('¿Por qué quieres denunciar este aviso?',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              ),
+              for (final r in _reportReasons)
+                RadioListTile<String>(
+                  value: r,
+                  groupValue: selected,
+                  onChanged: (v) => setM(() => selected = v),
+                  title: Text(r, style: const TextStyle(fontSize: 14)),
+                  activeColor: AppColors.primary,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 8),
+                  dense: true,
+                ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: selected == null
+                        ? null
+                        : () => _sendReport(p, selected!),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Enviar denuncia'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendReport(Property p, String reason) async {
+    Navigator.pop(context); // cerrar el sheet
+    try {
+      await PropertyService.createReport(propertyId: p.id, reason: reason);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Gracias. Recibimos tu denuncia.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No se pudo enviar la denuncia.')));
+    }
   }
 
   List<Widget> _buildCharacteristics(Property p) {

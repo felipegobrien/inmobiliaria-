@@ -133,6 +133,34 @@ class PropertyService {
     return Property.fromJson(data);
   }
 
+  /// Denunciar una publicación.
+  static Future<void> createReport({
+    required String propertyId,
+    required String reason,
+    String? details,
+  }) async {
+    await supabase.from('property_reports').insert({
+      'property_id': propertyId,
+      'reporter_id': supabase.auth.currentUser?.id,
+      'reason': reason,
+      'details': details,
+    });
+  }
+
+  /// Denuncias (solo admin por RLS), con datos del inmueble.
+  static Future<List<Map<String, dynamic>>> reports() async {
+    final data = await supabase
+        .from('property_reports')
+        .select(
+            '*, property:properties(id, title, city, neighborhood, ref, status)')
+        .order('created_at', ascending: false);
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  static Future<void> deleteReport(String id) async {
+    await supabase.from('property_reports').delete().eq('id', id);
+  }
+
   /// Registrar un lead/consulta de un interesado.
   static Future<void> createInquiry({
     required String propertyId,

@@ -67,7 +67,7 @@ class _MapScreenState extends State<MapScreen> {
       final last = await Geolocator.getLastKnownPosition();
       if (last != null && mounted) {
         _located = true;
-        _map.move(LatLng(last.latitude, last.longitude), 14);
+        _map.move(LatLng(last.latitude, last.longitude), 16);
         _reload();
       }
       // 2) Refina con una lectura nueva (precisión media = más rápida).
@@ -77,7 +77,7 @@ class _MapScreenState extends State<MapScreen> {
       ).timeout(const Duration(seconds: 8));
       if (!mounted) return;
       _located = true;
-      _map.move(LatLng(pos.latitude, pos.longitude), 14);
+      _map.move(LatLng(pos.latitude, pos.longitude), 16);
       _reload();
     } catch (_) {
       if (!initial && mounted && !_located) {
