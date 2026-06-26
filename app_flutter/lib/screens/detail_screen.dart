@@ -374,7 +374,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      'Publicado el ${DateFormat('d MMM y', 'es').format(p.publishedAt!.toLocal())} · Cód. ${p.ref}',
+                      'Publicado el ${DateFormat('d MMM y', 'es').format(p.publishedAt!.toLocal())} · Cód. ${p.code ?? p.ref}',
                       style: const TextStyle(
                           fontSize: 12, color: AppColors.textMuted),
                     ),

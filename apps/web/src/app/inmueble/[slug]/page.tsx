@@ -155,7 +155,7 @@ export default async function PropertyDetailPage({
                   month: "long",
                   year: "numeric",
                 })}{" "}
-                · Cód. {property.ref}
+                · Cód. {property.code ?? property.ref}
               </p>
             )}
             {owner?.role === "inmobiliaria" && owner.company && (

@@ -40,6 +40,7 @@ class _PublishScreenState extends State<PublishScreen> {
   final _city = TextEditingController();
   final _neighborhood = TextEditingController();
   final _address = TextEditingController();
+  final _code = TextEditingController();
   final _nearbyInput = TextEditingController();
 
   final List<String> _nearby = [];
@@ -79,6 +80,7 @@ class _PublishScreenState extends State<PublishScreen> {
       _city.text = p.city;
       _neighborhood.text = p.neighborhood ?? '';
       _address.text = p.address ?? '';
+      _code.text = p.code ?? '';
       _nearby.addAll(p.nearbyPlaces);
       _selectedAmenities.addAll(p.amenityIds);
       _existingImages = List.from(p.images);
@@ -173,6 +175,10 @@ class _PublishScreenState extends State<PublishScreen> {
         'nearby_places': _nearby,
         'published_at': DateTime.now().toIso8601String(),
       };
+      // Código: solo si el usuario lo escribió (si no, lo asigna la base).
+      if (_code.text.trim().isNotEmpty) {
+        payload['code'] = _code.text.trim();
+      }
 
       // Ubicación en el mapa.
       if (_picked != null) {
@@ -245,7 +251,7 @@ class _PublishScreenState extends State<PublishScreen> {
   void _clear() {
     for (final c in [
       _title, _description, _price, _admon, _bedrooms, _bathrooms,
-      _parking, _area, _city, _neighborhood, _address,
+      _parking, _area, _city, _neighborhood, _address, _code,
     ]) {
       c.clear();
     }
@@ -425,6 +431,14 @@ class _PublishScreenState extends State<PublishScreen> {
             _label('Dirección'),
             TextField(controller: _address),
 
+            _label('Código (opcional)'),
+            TextField(
+              controller: _code,
+              decoration: const InputDecoration(
+                hintText: 'Si lo dejas vacío, se asigna uno automáticamente',
+              ),
+            ),
+
             _label('Ubicación en el mapa'),
             GestureDetector(
               onTap: _openLocationPicker,
@@ -471,7 +485,8 @@ class _PublishScreenState extends State<PublishScreen> {
                               children: [
                                 TileLayer(
                                   urlTemplate:
-                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                                  subdomains: const ['a', 'b', 'c', 'd'],
                                   userAgentPackageName:
                                       'com.example.inmobiliaria',
                                 ),

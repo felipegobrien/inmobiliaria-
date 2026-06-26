@@ -21,11 +21,30 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final _map = MapController();
+  final _placeCtrl = TextEditingController();
   Timer? _debounce;
   List<MapPin> _pins = [];
   MapPin? _selected;
   Property? _selectedProperty; // ficha completa del pin tocado
   bool _loading = false;
+  bool _searching = false;
+
+  /// Busca un lugar por nombre/dirección y centra el mapa ahí.
+  Future<void> _searchPlace(String q) async {
+    if (q.trim().isEmpty) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _searching = true);
+    final c = await PropertyService.geocode(q);
+    if (!mounted) return;
+    setState(() => _searching = false);
+    if (c != null) {
+      _closeCard();
+      _map.move(LatLng(c.lat, c.lng), 14);
+      _reload();
+    } else {
+      _toast('No encontramos ese lugar.');
+    }
+  }
 
   Future<void> _selectPin(MapPin p) async {
     setState(() {
@@ -127,6 +146,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _placeCtrl.dispose();
     super.dispose();
   }
 
@@ -160,9 +180,9 @@ class _MapScreenState extends State<MapScreen> {
             ),
             children: [
               TileLayer(
-                // Mapa claro y sencillo (CartoDB Positron).
+                // Mapa claro con detalle de lugares/calles (CartoDB Voyager).
                 urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.example.inmobiliaria',
               ),
@@ -205,13 +225,73 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
 
-          // Botón volver
+          // Barra superior: volver + buscador de lugares
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             left: 12,
-            child: _circleButton(
-              icon: Icons.arrow_back,
-              onTap: () => Navigator.pop(context),
+            right: 12,
+            child: Row(
+              children: [
+                _circleButton(
+                  icon: Icons.arrow_back,
+                  onTap: () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Container(
+                    height: 46,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.18),
+                            blurRadius: 8),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        _searching
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary),
+                              )
+                            : const Icon(Icons.search,
+                                size: 20, color: AppColors.textMuted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _placeCtrl,
+                            textInputAction: TextInputAction.search,
+                            onChanged: (_) => setState(() {}),
+                            onSubmitted: _searchPlace,
+                            decoration: const InputDecoration(
+                              isCollapsed: true,
+                              border: InputBorder.none,
+                              hintText: 'Busca un lugar o dirección',
+                              hintStyle: TextStyle(
+                                  color: AppColors.textMuted, fontSize: 14),
+                            ),
+                          ),
+                        ),
+                        if (_placeCtrl.text.isNotEmpty)
+                          GestureDetector(
+                            onTap: () {
+                              _placeCtrl.clear();
+                              setState(() {});
+                            },
+                            child: const Icon(Icons.close,
+                                size: 18, color: AppColors.textMuted),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -228,7 +308,7 @@ class _MapScreenState extends State<MapScreen> {
 
           // Indicador de carga + contador
           Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
+            top: MediaQuery.of(context).padding.top + 66,
             left: 0,
             right: 0,
             child: Center(

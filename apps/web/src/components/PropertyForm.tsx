@@ -74,6 +74,7 @@ export function PropertyForm({
     city: initial?.city ?? "",
     neighborhood: initial?.neighborhood ?? "",
     address: initial?.address ?? "",
+    code: initial?.code ?? "",
   });
   const [existingImages, setExistingImages] = useState(
     initial?.property_images ?? [],
@@ -185,6 +186,8 @@ export function PropertyForm({
         neighborhood: form.neighborhood || null,
         address: form.address || null,
         nearby_places: nearbyPlaces,
+        // Solo si el usuario lo escribió (si no, lo asigna la base).
+        code: form.code.trim() || undefined,
       };
 
       // Ubicación en el mapa.
@@ -349,14 +352,24 @@ export function PropertyForm({
         </Labeled>
       </div>
 
-      <Labeled label="Área (m²)">
-        <input
-          type="number"
-          value={form.area_m2}
-          onChange={(e) => set("area_m2", e.target.value)}
-          className={input}
-        />
-      </Labeled>
+      <div className="grid grid-cols-2 gap-3">
+        <Labeled label="Área (m²)">
+          <input
+            type="number"
+            value={form.area_m2}
+            onChange={(e) => set("area_m2", e.target.value)}
+            className={input}
+          />
+        </Labeled>
+        <Labeled label="Código (opcional)">
+          <input
+            value={form.code}
+            onChange={(e) => set("code", e.target.value)}
+            placeholder="Se asigna uno si lo dejas vacío"
+            className={input}
+          />
+        </Labeled>
+      </div>
 
       {/* Ubicación */}
       <div className="grid grid-cols-2 gap-3">

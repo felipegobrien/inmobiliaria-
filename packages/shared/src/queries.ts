@@ -58,10 +58,11 @@ export async function getMyPropertiesWithStats(
 // Datos para crear/editar un inmueble (sin los campos que pone el servidor).
 export type PropertyInput = Omit<
   Property,
-  'id' | 'owner_id' | 'views_count' | 'ref' | 'created_at' | 'updated_at' | 'published_at' | 'location' | 'featured' | 'featured_at' | 'plan' | 'expires_at'
+  'id' | 'owner_id' | 'views_count' | 'ref' | 'code' | 'created_at' | 'updated_at' | 'published_at' | 'location' | 'featured' | 'featured_at' | 'plan' | 'expires_at'
 > & {
   latitude?: number | null;
   longitude?: number | null;
+  code?: string | null;
   featured?: boolean;
   featured_at?: string | null;
   plan?: string;
@@ -163,9 +164,16 @@ export async function searchProperties(
   if (filters.city) query = query.ilike('city', filters.city);
   if (filters.search) {
     const s = filters.search;
-    query = query.or(
-      `title.ilike.%${s}%,neighborhood.ilike.%${s}%,city.ilike.%${s}%,department.ilike.%${s}%,description.ilike.%${s}%`,
-    );
+    const parts = [
+      `title.ilike.%${s}%`,
+      `neighborhood.ilike.%${s}%`,
+      `city.ilike.%${s}%`,
+      `department.ilike.%${s}%`,
+      `description.ilike.%${s}%`,
+      `code.ilike.%${s}%`,
+    ];
+    if (/^\d+$/.test(s.trim())) parts.push(`ref.eq.${s.trim()}`);
+    query = query.or(parts.join(','));
   }
   if (filters.minPrice != null) query = query.gte('price', filters.minPrice);
   if (filters.maxPrice != null) query = query.lte('price', filters.maxPrice);

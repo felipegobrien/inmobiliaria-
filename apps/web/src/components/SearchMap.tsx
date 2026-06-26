@@ -201,7 +201,7 @@ export default function SearchMap() {
         scrollWheelZoom
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap &copy; CARTO"
         />
         <BoundsWatcher onChange={query} />

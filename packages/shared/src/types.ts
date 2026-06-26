@@ -93,6 +93,7 @@ export interface Property {
 
   views_count: number;
   ref: number;
+  code: string | null;
   featured: boolean;
   featured_at: string | null;
   plan: string;

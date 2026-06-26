@@ -30,8 +30,18 @@ class PropertyService {
     }
     if (f.search != null && f.search!.isNotEmpty) {
       final s = f.search!;
-      q = q.or('title.ilike.%$s%,neighborhood.ilike.%$s%,city.ilike.%$s%,'
-          'department.ilike.%$s%,description.ilike.%$s%');
+      final parts = [
+        'title.ilike.%$s%',
+        'neighborhood.ilike.%$s%',
+        'city.ilike.%$s%',
+        'department.ilike.%$s%',
+        'description.ilike.%$s%',
+        'code.ilike.%$s%',
+      ];
+      if (RegExp(r'^\d+$').hasMatch(s.trim())) {
+        parts.add('ref.eq.${s.trim()}');
+      }
+      q = q.or(parts.join(','));
     }
     if (f.minPrice != null) q = q.gte('price', f.minPrice!);
     if (f.maxPrice != null) q = q.lte('price', f.maxPrice!);

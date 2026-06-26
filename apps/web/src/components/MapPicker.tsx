@@ -51,8 +51,8 @@ export default function MapPicker({
         scrollWheelZoom
       >
         <TileLayer
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap"
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+          attribution="&copy; OpenStreetMap &copy; CARTO"
         />
         <CenterWatcher onChange={onChange} />
         <Recenter center={recenter} />
