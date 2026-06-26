@@ -60,6 +60,14 @@ class PropertyService {
           .where((p) => f.amenityIds.every((id) => p.amenityIds.contains(id)))
           .toList();
     }
+
+    // Orden por nivel de destacado: Premium (negro) primero, luego Destacado
+    // (naranja), luego el resto. Conserva el orden secundario de la consulta.
+    list = [
+      ...list.where((p) => p.isPremium),
+      ...list.where((p) => p.isOrangeFeatured),
+      ...list.where((p) => !p.featured && !p.isPremium),
+    ];
     return list;
   }
 
@@ -384,9 +392,14 @@ class PropertyService {
         .eq('status', 'activo')
         .order('featured', ascending: false)
         .order('published_at', ascending: false, nullsFirst: false);
-    return (data as List)
+    final list = (data as List)
         .map((e) => Property.fromJson(e as Map<String, dynamic>))
         .toList();
+    return [
+      ...list.where((p) => p.isPremium),
+      ...list.where((p) => p.isOrangeFeatured),
+      ...list.where((p) => !p.featured && !p.isPremium),
+    ];
   }
 
   // ---- Administración ----

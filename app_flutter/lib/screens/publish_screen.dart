@@ -259,36 +259,55 @@ class _PublishScreenState extends State<PublishScreen> {
                         fontSize: 22, fontWeight: FontWeight.w800)),
               ),
             if (!isEdit && widget.plan != null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 4),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: widget.plan!.isFeatured
-                      ? const Color(0xFFFFFBEB)
-                      : const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: widget.plan!.isFeatured
-                          ? const Color(0xFFFDE68A)
-                          : const Color(0xFFA7F3D0)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(widget.plan!.isFeatured ? Icons.star : Icons.check_circle,
-                        color: widget.plan!.isFeatured
-                            ? const Color(0xFFD97706)
-                            : AppColors.primary,
-                        size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Plan ${widget.plan!.name} · ${widget.plan!.durationDays} días',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+              Builder(builder: (_) {
+                final plan = widget.plan!;
+                final premium = plan.id == 'premium';
+                final bg = premium
+                    ? const Color(0xFF121212)
+                    : (plan.isFeatured
+                        ? const Color(0xFFFFFBEB)
+                        : const Color(0xFFECFDF5));
+                final border = premium
+                    ? const Color(0xFF121212)
+                    : (plan.isFeatured
+                        ? const Color(0xFFFDE68A)
+                        : const Color(0xFFA7F3D0));
+                final fg = premium
+                    ? const Color(0xFFE6C25C)
+                    : (plan.isFeatured
+                        ? const Color(0xFFD97706)
+                        : AppColors.primary);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: border),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                          premium
+                              ? Icons.workspace_premium
+                              : (plan.isFeatured
+                                  ? Icons.star
+                                  : Icons.check_circle),
+                          color: fg,
+                          size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Plan ${plan.name} · ${plan.durationDays} días',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: premium ? fg : null),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+                );
+              }),
             _label('Operación'),
             _chips(
               {for (final o in _operations) o: operationLabels[o]!},

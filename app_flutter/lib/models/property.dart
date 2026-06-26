@@ -223,6 +223,12 @@ class Property {
     this.owner,
   });
 
+  /// Destacado superior (sello negro/oro). Es un nivel por encima del naranja.
+  bool get isPremium => plan == 'premium';
+
+  /// Destacado naranja "clásico" (featured pero no premium).
+  bool get isOrangeFeatured => featured && !isPremium;
+
   String? get coverUrl {
     if (images.isEmpty) return null;
     final cover = images.firstWhere(

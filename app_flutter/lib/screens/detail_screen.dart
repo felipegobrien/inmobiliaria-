@@ -286,7 +286,29 @@ class _DetailScreenState extends State<DetailScreen> {
               children: [
                 Row(
                   children: [
-                    if (p.featured)
+                    if (p.isPremium)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                            color: const Color(0xFF121212),
+                            borderRadius: BorderRadius.circular(999)),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.workspace_premium,
+                                size: 14, color: Color(0xFFE6C25C)),
+                            SizedBox(width: 4),
+                            Text('Premium',
+                                style: TextStyle(
+                                    color: Color(0xFFE6C25C),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      )
+                    else if (p.featured)
                       Container(
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(

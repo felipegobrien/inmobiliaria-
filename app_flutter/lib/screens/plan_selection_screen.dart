@@ -221,26 +221,41 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   }
 
   Widget _planCard(Plan plan) {
+    final premium = plan.id == 'premium';
     final featured = plan.isFeatured;
+    const gold = Color(0xFFE6C25C);
+    const black = Color(0xFF121212);
+
+    final borderColor = premium
+        ? black
+        : (featured ? const Color(0xFFFDE68A) : AppColors.border);
+    final accent = premium
+        ? black
+        : (featured ? const Color(0xFF92400E) : AppColors.primaryDark);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: premium ? const Color(0xFFFBFAF7) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: featured ? const Color(0xFFFDE68A) : AppColors.border,
-            width: featured ? 2 : 1),
+            color: borderColor, width: (featured || premium) ? 2 : 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(featured ? Icons.star : Icons.check_circle,
-                  color: featured
-                      ? const Color(0xFFD97706)
-                      : AppColors.primary),
+              Icon(
+                  premium
+                      ? Icons.workspace_premium
+                      : (featured ? Icons.star : Icons.check_circle),
+                  color: premium
+                      ? black
+                      : (featured
+                          ? const Color(0xFFD97706)
+                          : AppColors.primary)),
               const SizedBox(width: 8),
               Text(plan.name,
                   style: const TextStyle(
@@ -251,9 +266,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           Text(
             plan.price == 0 ? 'Gratis' : formatPrice(plan.price),
             style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: featured ? const Color(0xFF92400E) : AppColors.primaryDark),
+                fontSize: 24, fontWeight: FontWeight.w800, color: accent),
           ),
           Text('por ${plan.durationDays} días',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
@@ -267,10 +280,13 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => _choosePlan(plan),
-              style: featured
+              style: premium
                   ? ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD97706))
-                  : null,
+                      backgroundColor: black, foregroundColor: gold)
+                  : featured
+                      ? ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD97706))
+                      : null,
               child: Text(plan.price == 0
                   ? 'Publicar gratis'
                   : 'Elegir ${plan.name}'),
