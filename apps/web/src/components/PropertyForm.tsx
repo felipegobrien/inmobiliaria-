@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   createProperty,
   updateProperty,
@@ -10,6 +11,7 @@ import {
   getAmenities,
   searchCities,
   searchNeighborhoods,
+  geocodeAddress,
   OPERATION_LABELS,
   TYPE_LABELS,
   AMENITY_CATEGORY_LABELS,
@@ -23,6 +25,16 @@ import {
   type PropertyWithImages,
 } from "@inmo/shared";
 import { supabase } from "@/lib/supabase";
+
+// Leaflet usa window: solo en cliente.
+const MapPicker = dynamic(() => import("@/components/MapPicker"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-64 items-center justify-center rounded-xl border border-zinc-300 text-sm text-zinc-500 dark:border-zinc-700">
+      Cargando mapa…
+    </div>
+  ),
+});
 
 const input =
   "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
@@ -80,8 +92,31 @@ export function PropertyForm({
   );
   const [nearbyInput, setNearbyInput] = useState("");
 
+  // Ubicación en el mapa
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
+  const [placed, setPlaced] = useState(false);
+  const [recenter, setRecenter] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
+
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const centerOnAddress = async () => {
+    const q = [form.address, form.neighborhood, form.city]
+      .filter(Boolean)
+      .join(", ");
+    const c = await geocodeAddress(q);
+    if (c) {
+      setRecenter(c);
+      setCoords(c);
+      setPlaced(true);
+    } else {
+      setError("No pudimos ubicar esa dirección. Mueve el mapa manualmente.");
+    }
+  };
 
   useEffect(() => {
     getAmenities(supabase)
@@ -151,6 +186,23 @@ export function PropertyForm({
         address: form.address || null,
         nearby_places: nearbyPlaces,
       };
+
+      // Ubicación en el mapa.
+      if (placed && coords) {
+        payload.latitude = coords.lat;
+        payload.longitude = coords.lng;
+      } else if (!isEdit) {
+        // Sin pin: geocodificamos para que igual aparezca en el mapa.
+        const c = await geocodeAddress(
+          [form.address, form.neighborhood, form.city]
+            .filter(Boolean)
+            .join(", "),
+        );
+        if (c) {
+          payload.latitude = c.lat;
+          payload.longitude = c.lng;
+        }
+      }
 
       // Plan elegido (solo al crear): define destacado y vencimiento.
       if (!isEdit && plan) {
@@ -346,6 +398,35 @@ export function PropertyForm({
             className={input}
           />
         </Labeled>
+      </div>
+
+      {/* Ubicación en el mapa */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-zinc-700 dark:text-zinc-300">
+            Ubicación en el mapa
+          </span>
+          <button
+            type="button"
+            onClick={centerOnAddress}
+            className="rounded-lg border border-emerald-700 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+          >
+            Centrar en mi dirección
+          </button>
+        </div>
+        <MapPicker
+          recenter={recenter}
+          onChange={(lat, lng, fromUser) => {
+            setCoords({ lat, lng });
+            if (fromUser) setPlaced(true);
+          }}
+        />
+        <p className="text-xs text-zinc-500">
+          Mueve el mapa para que el pin verde quede sobre tu propiedad.
+          {coords && placed
+            ? " ✓ Ubicación marcada."
+            : " (Aún sin marcar)"}
+        </p>
       </div>
 
       {/* Características */}

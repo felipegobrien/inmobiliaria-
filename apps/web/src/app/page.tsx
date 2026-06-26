@@ -166,9 +166,17 @@ export default function Home() {
                 ? "En venta"
                 : "Inmuebles destacados"}
           </h2>
-          <span className="text-sm text-zinc-500">
-            {loading ? "Buscando…" : `${count} resultados`}
-          </span>
+          <div className="flex items-center gap-3">
+            <a
+              href="/mapa"
+              className="flex items-center gap-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300"
+            >
+              🗺️ Ver en mapa
+            </a>
+            <span className="text-sm text-zinc-500">
+              {loading ? "Buscando…" : `${count} resultados`}
+            </span>
+          </div>
         </div>
 
         {!loading && results.length === 0 ? (

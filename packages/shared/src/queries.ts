@@ -522,6 +522,68 @@ export async function getAgencyProperties(
   return (data ?? []) as PropertyWithImages[];
 }
 
+/** Inmueble liviano para los pines del mapa (estilo Airbnb). */
+export interface MapPin {
+  id: string;
+  title: string;
+  price: number;
+  operation: string;
+  type: string;
+  neighborhood: string | null;
+  city: string;
+  bedrooms: number;
+  bathrooms: number;
+  featured: boolean;
+  plan: string;
+  ref: number;
+  lat: number;
+  lng: number;
+  cover_url: string | null;
+}
+
+/** Inmuebles dentro del recuadro visible del mapa (búsqueda por área). */
+export async function getPropertiesInBounds(
+  supabase: SupabaseClient,
+  bounds: {
+    minLng: number;
+    minLat: number;
+    maxLng: number;
+    maxLat: number;
+    limit?: number;
+  },
+): Promise<MapPin[]> {
+  const { data, error } = await supabase.rpc('properties_in_bounds', {
+    min_lng: bounds.minLng,
+    min_lat: bounds.minLat,
+    max_lng: bounds.maxLng,
+    max_lat: bounds.maxLat,
+    lim: bounds.limit ?? 300,
+  });
+  if (error) throw error;
+  return (data ?? []) as MapPin[];
+}
+
+/** Geocodifica una dirección/barrio/ciudad a coordenadas (OpenStreetMap). */
+export async function geocodeAddress(
+  query: string,
+): Promise<{ lat: number; lng: number } | null> {
+  if (!query.trim()) return null;
+  try {
+    const url =
+      'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=co&q=' +
+      encodeURIComponent(query);
+    const r = await fetch(url, {
+      headers: { 'Accept-Language': 'es' },
+    });
+    if (!r.ok) return null;
+    const list = (await r.json()) as Array<{ lat: string; lon: string }>;
+    if (!list.length) return null;
+    return { lat: parseFloat(list[0].lat), lng: parseFloat(list[0].lon) };
+  } catch {
+    return null;
+  }
+}
+
 /** Planes de publicación. */
 export async function getPlans(supabase: SupabaseClient): Promise<Plan[]> {
   const { data, error } = await supabase.from('plans').select('*').order('sort');
