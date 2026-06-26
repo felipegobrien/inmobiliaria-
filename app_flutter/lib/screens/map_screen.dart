@@ -309,6 +309,49 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
 
+          // Indicador de carga + contador (debajo del buscador en z-order)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 66,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 8),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_loading) ...[
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.primary),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      _loading
+                          ? 'Buscando en esta zona…'
+                          : '${_pins.length} inmuebles en esta zona',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           // Barra superior: volver + buscador de lugares
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
@@ -475,48 +518,6 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ],
 
-          // Indicador de carga + contador
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 66,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 8),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_loading) ...[
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColors.primary),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    Text(
-                      _loading
-                          ? 'Buscando en esta zona…'
-                          : '${_pins.length} inmuebles en esta zona',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
 
           // Ficha del inmueble seleccionado (la misma de Buscar)
           if (_selected != null)
