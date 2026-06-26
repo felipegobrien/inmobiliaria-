@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
-import '../services/places_service.dart';
 import '../widgets/property_card.dart';
 import 'detail_screen.dart';
 import 'map_screen.dart';
@@ -33,7 +32,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Timer? _debounce;
   Timer? _sugDebounce;
   final _searchCtrl = TextEditingController();
-  List<PlaceSuggestion> _placeSug = [];
+  List<({String label, double lat, double lng})> _placeSug = [];
 
   @override
   void initState() {
@@ -76,17 +75,18 @@ class _SearchScreenState extends State<SearchScreen> {
     if (v.trim().length < 3) {
       setState(() => _placeSug = []);
     } else {
-      _sugDebounce = Timer(const Duration(milliseconds: 300), () async {
-        final s = await PlacesService.autocomplete(v.trim());
+      _sugDebounce = Timer(const Duration(milliseconds: 350), () async {
+        final s = await PropertyService.geocodeSuggestions(v.trim());
         if (mounted) setState(() => _placeSug = s);
       });
     }
   }
 
-  void _pickPlace(PlaceSuggestion s) {
+  void _pickPlace(({String label, double lat, double lng}) s) {
     FocusScope.of(context).unfocus();
-    _searchCtrl.text = s.main;
-    _filters.search = s.main;
+    final name = s.label.split(',').first;
+    _searchCtrl.text = name;
+    _filters.search = name;
     setState(() => _placeSug = []);
     _load();
   }
@@ -194,25 +194,10 @@ class _SearchScreenState extends State<SearchScreen> {
                                   size: 18, color: AppColors.textMuted),
                               const SizedBox(width: 8),
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(s.main,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600)),
-                                    if (s.secondary.isNotEmpty)
-                                      Text(s.secondary,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textMuted)),
-                                  ],
-                                ),
+                                child: Text(s.label,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 13)),
                               ),
                             ],
                           ),

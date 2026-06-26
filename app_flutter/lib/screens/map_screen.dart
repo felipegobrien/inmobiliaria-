@@ -7,7 +7,6 @@ import 'package:latlong2/latlong.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
-import '../services/places_service.dart';
 import '../widgets/property_card.dart';
 import 'detail_screen.dart';
 
@@ -29,11 +28,11 @@ class _MapScreenState extends State<MapScreen> {
   MapPin? _selected;
   Property? _selectedProperty; // ficha completa del pin tocado
   LatLng? _userPos; // ubicación del usuario (pin azul)
-  List<PlaceSuggestion> _suggestions = [];
+  List<({String label, double lat, double lng})> _suggestions = [];
   bool _loading = false;
   bool _searching = false;
 
-  /// Mientras escribe, busca sugerencias (Google Places) cercanas a la vista.
+  /// Mientras escribe, busca sugerencias de lugares cercanos a la vista.
   void _onPlaceChanged(String v) {
     setState(() {});
     _suggestDebounce?.cancel();
@@ -41,53 +40,52 @@ class _MapScreenState extends State<MapScreen> {
       setState(() => _suggestions = []);
       return;
     }
-    _suggestDebounce = Timer(const Duration(milliseconds: 300), () async {
-      final c = _mapCenter();
-      final s = await PlacesService.autocomplete(v, lat: c?.lat, lng: c?.lng);
+    _suggestDebounce = Timer(const Duration(milliseconds: 350), () async {
+      LatLngBounds? b;
+      try {
+        b = _map.camera.visibleBounds;
+      } catch (_) {}
+      final s = await PropertyService.geocodeSuggestions(
+        v,
+        minLng: b?.west,
+        minLat: b?.south,
+        maxLng: b?.east,
+        maxLat: b?.north,
+      );
       if (mounted) setState(() => _suggestions = s);
     });
   }
 
-  ({double lat, double lng})? _mapCenter() {
-    try {
-      final c = _map.camera.center;
-      return (lat: c.latitude, lng: c.longitude);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> _pickSuggestion(PlaceSuggestion s) async {
+  void _goTo(double lat, double lng, String label) {
     FocusScope.of(context).unfocus();
-    _placeCtrl.text = s.main;
-    setState(() {
-      _suggestions = [];
-      _searching = true;
-    });
-    final loc = await PlacesService.details(s.placeId);
-    if (!mounted) return;
-    setState(() => _searching = false);
-    if (loc != null) {
-      _closeCard();
-      _map.move(LatLng(loc.lat, loc.lng), 15);
-      _reload();
-    } else {
-      _toast('No pudimos abrir ese lugar.');
-    }
+    _placeCtrl.text = label.split(',').first;
+    setState(() => _suggestions = []);
+    _closeCard();
+    _map.move(LatLng(lat, lng), 15);
+    _reload();
   }
 
-  /// Al darle "enter": usa la primera sugerencia.
+  /// Al darle "enter": usa el primer resultado.
   Future<void> _searchPlace(String q) async {
     if (q.trim().isEmpty) return;
     FocusScope.of(context).unfocus();
     setState(() => _searching = true);
-    final c = _mapCenter();
-    final list = await PlacesService.autocomplete(q, lat: c?.lat, lng: c?.lng);
+    LatLngBounds? b;
+    try {
+      b = _map.camera.visibleBounds;
+    } catch (_) {}
+    final list = await PropertyService.geocodeSuggestions(
+      q,
+      minLng: b?.west,
+      minLat: b?.south,
+      maxLng: b?.east,
+      maxLat: b?.north,
+    );
     if (!mounted) return;
+    setState(() => _searching = false);
     if (list.isNotEmpty) {
-      await _pickSuggestion(list.first);
+      _goTo(list.first.lat, list.first.lng, list.first.label);
     } else {
-      setState(() => _searching = false);
       _toast('No encontramos ese lugar.');
     }
   }
@@ -389,7 +387,7 @@ class _MapScreenState extends State<MapScreen> {
                         children: [
                           for (final s in _suggestions.take(6))
                             InkWell(
-                              onTap: () => _pickSuggestion(s),
+                              onTap: () => _goTo(s.lat, s.lng, s.label),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 10),
@@ -399,28 +397,11 @@ class _MapScreenState extends State<MapScreen> {
                                         size: 18, color: AppColors.textMuted),
                                     const SizedBox(width: 8),
                                     Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            s.main,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          if (s.secondary.isNotEmpty)
-                                            Text(
-                                              s.secondary,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                  fontSize: 12,
-                                                  color: AppColors.textMuted),
-                                            ),
-                                        ],
+                                      child: Text(
+                                        s.label,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 13),
                                       ),
                                     ),
                                   ],

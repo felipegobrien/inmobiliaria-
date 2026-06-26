@@ -589,6 +589,39 @@ export async function getPropertiesInBounds(
   return (data ?? []) as MapPin[];
 }
 
+/** Sugerencia de lugar para autocompletar (gratuito, OpenStreetMap). */
+export interface PlaceSuggestion {
+  label: string;
+  lat: number;
+  lng: number;
+}
+
+/** Sugerencias de lugares (Nominatim/OpenStreetMap), gratis. */
+export async function geocodeSuggestions(
+  query: string,
+): Promise<PlaceSuggestion[]> {
+  if (query.trim().length < 3) return [];
+  try {
+    const url =
+      'https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=co&accept-language=es&q=' +
+      encodeURIComponent(query);
+    const r = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+    if (!r.ok) return [];
+    const list = (await r.json()) as Array<{
+      display_name: string;
+      lat: string;
+      lon: string;
+    }>;
+    return list.map((e) => ({
+      label: e.display_name,
+      lat: parseFloat(e.lat),
+      lng: parseFloat(e.lon),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 /** Geocodifica una dirección/barrio/ciudad a coordenadas (OpenStreetMap). */
 export async function geocodeAddress(
   query: string,

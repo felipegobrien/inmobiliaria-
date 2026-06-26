@@ -10,7 +10,7 @@ import {
   type PropertyWithImages,
 } from "@inmo/shared";
 import { supabase } from "@/lib/supabase";
-import { placesAutocomplete, type PlaceSuggestion } from "@/lib/places";
+import { geocodeSuggestions, type PlaceSuggestion } from "@inmo/shared";
 import { Filters } from "@/components/Filters";
 import { PropertyCard } from "@/components/PropertyCard";
 import { Header } from "@/components/Header";
@@ -40,10 +40,10 @@ export default function Home() {
     }
     let active = true;
     const t = setTimeout(() => {
-      placesAutocomplete(q)
+      geocodeSuggestions(q)
         .then((s) => active && setPlaceSug(s))
         .catch(() => {});
-    }, 300);
+    }, 350);
     return () => {
       active = false;
       clearTimeout(t);
@@ -130,24 +130,17 @@ export default function Home() {
                 />
                 {placeSug.length > 0 && (
                   <ul className="absolute left-0 right-0 z-30 mt-1 max-h-60 overflow-auto rounded-xl border border-zinc-200 bg-white text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-                    {placeSug.map((s) => (
-                      <li key={s.placeId}>
+                    {placeSug.map((s, i) => (
+                      <li key={`${s.lat},${s.lng},${i}`}>
                         <button
                           type="button"
                           onClick={() => {
-                            set({ search: s.main });
+                            set({ search: s.label.split(",")[0] });
                             setPlaceSug([]);
                           }}
-                          className="block w-full px-4 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          className="block w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
                         >
-                          <span className="font-medium text-zinc-800 dark:text-zinc-200">
-                            {s.main}
-                          </span>
-                          {s.secondary && (
-                            <span className="block text-xs text-zinc-500">
-                              {s.secondary}
-                            </span>
-                          )}
+                          {s.label}
                         </button>
                       </li>
                     ))}

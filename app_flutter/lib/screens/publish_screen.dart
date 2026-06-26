@@ -7,7 +7,6 @@ import 'package:latlong2/latlong.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
-import '../services/places_service.dart';
 import '../services/app_events.dart';
 import 'detail_screen.dart';
 import 'location_picker_screen.dart';
@@ -807,9 +806,9 @@ class _PlacesAddressField extends StatefulWidget {
 }
 
 class _PlacesAddressFieldState extends State<_PlacesAddressField> {
-  List<PlaceSuggestion> _s = [];
+  List<({String label, double lat, double lng})> _s = [];
   Timer? _d;
-  bool _busy = false;
+  final bool _busy = false;
 
   void _onChanged(String v) {
     _d?.cancel();
@@ -817,23 +816,17 @@ class _PlacesAddressFieldState extends State<_PlacesAddressField> {
       setState(() => _s = []);
       return;
     }
-    _d = Timer(const Duration(milliseconds: 300), () async {
-      final r = await PlacesService.autocomplete(v.trim());
+    _d = Timer(const Duration(milliseconds: 350), () async {
+      final r = await PropertyService.geocodeSuggestions(v.trim());
       if (mounted) setState(() => _s = r);
     });
   }
 
-  Future<void> _select(PlaceSuggestion s) async {
+  void _select(({String label, double lat, double lng}) s) {
     FocusScope.of(context).unfocus();
-    widget.controller.text = s.full;
-    setState(() {
-      _s = [];
-      _busy = true;
-    });
-    final loc = await PlacesService.details(s.placeId);
-    if (!mounted) return;
-    setState(() => _busy = false);
-    if (loc != null) widget.onPicked(loc.lat, loc.lng);
+    widget.controller.text = s.label.split(',').take(2).join(',').trim();
+    setState(() => _s = []);
+    widget.onPicked(s.lat, s.lng);
   }
 
   @override
@@ -886,24 +879,10 @@ class _PlacesAddressFieldState extends State<_PlacesAddressField> {
                               size: 18, color: AppColors.textMuted),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(s.main,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600)),
-                                if (s.secondary.isNotEmpty)
-                                  Text(s.secondary,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.textMuted)),
-                              ],
-                            ),
+                            child: Text(s.label,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13)),
                           ),
                         ],
                       ),
