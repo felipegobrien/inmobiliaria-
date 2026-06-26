@@ -194,6 +194,7 @@ export default function SearchMap() {
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<MapPin | null>(null);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [satellite, setSatellite] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const userIcon = L.divIcon({
@@ -234,15 +235,36 @@ export default function SearchMap() {
         className="h-full w-full"
         scrollWheelZoom
       >
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap &copy; CARTO"
-        />
+        {satellite ? (
+          <>
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution="&copy; Esri"
+            />
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              attribution=""
+            />
+          </>
+        ) : (
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap &copy; CARTO"
+          />
+        )}
         <BoundsWatcher onChange={query} />
         <LocateControl initial onUser={setUserPos} />
         <ClusterLayer pins={pins} onSelect={setSelected} />
         {userPos && <Marker position={userPos} icon={userIcon} />}
       </MapContainer>
+
+      {/* Toggle Mapa / Satélite */}
+      <button
+        onClick={() => setSatellite((s) => !s)}
+        className="absolute left-3 top-3 z-[1000] rounded-full bg-white px-4 py-2 text-sm font-medium shadow-lg hover:bg-zinc-100"
+      >
+        {satellite ? "🗺️ Mapa" : "🛰️ Satélite"}
+      </button>
 
       {/* Contador / estado */}
       <div className="pointer-events-none absolute left-0 right-0 top-3 z-[1000] flex justify-center">

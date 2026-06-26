@@ -31,6 +31,7 @@ class _MapScreenState extends State<MapScreen> {
   List<({String label, double lat, double lng})> _suggestions = [];
   bool _loading = false;
   bool _searching = false;
+  bool _satellite = false;
 
   /// Mientras escribe, busca sugerencias de lugares cercanos a la vista.
   void _onPlaceChanged(String v) {
@@ -226,13 +227,26 @@ class _MapScreenState extends State<MapScreen> {
               onTap: (_, __) => _closeCard(),
             ),
             children: [
-              TileLayer(
-                // Mapa claro con detalle de lugares/calles (CartoDB Voyager).
-                urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
-                userAgentPackageName: 'com.example.inmobiliaria',
-              ),
+              if (_satellite) ...[
+                // Vista satélite (Esri World Imagery) + nombres de calles/lugares
+                TileLayer(
+                  urlTemplate:
+                      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                  userAgentPackageName: 'com.example.inmobiliaria',
+                ),
+                TileLayer(
+                  urlTemplate:
+                      'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+                  userAgentPackageName: 'com.example.inmobiliaria',
+                ),
+              ] else
+                TileLayer(
+                  // Mapa claro con detalle de lugares/calles (CartoDB Voyager).
+                  urlTemplate:
+                      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c', 'd'],
+                  userAgentPackageName: 'com.example.inmobiliaria',
+                ),
               MarkerClusterLayerWidget(
                 options: MarkerClusterLayerOptions(
                   maxClusterRadius: 50,
@@ -416,8 +430,8 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          // Botón localizarme (se oculta cuando hay una ficha abierta)
-          if (_selected == null)
+          // Botones flotantes (se ocultan cuando hay una ficha abierta)
+          if (_selected == null) ...[
             Positioned(
               right: 12,
               bottom: MediaQuery.of(context).padding.bottom + 24,
@@ -426,6 +440,40 @@ class _MapScreenState extends State<MapScreen> {
                 onTap: () => _locate(),
               ),
             ),
+            // Toggle Mapa / Satélite
+            Positioned(
+              left: 12,
+              bottom: MediaQuery.of(context).padding.bottom + 24,
+              child: GestureDetector(
+                onTap: () => setState(() => _satellite = !_satellite),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 8),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_satellite ? Icons.map_outlined : Icons.satellite_alt,
+                          size: 18, color: AppColors.text),
+                      const SizedBox(width: 6),
+                      Text(_satellite ? 'Mapa' : 'Satélite',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
 
           // Indicador de carga + contador
           Positioned(
