@@ -8,4 +8,7 @@ class Config {
 
   // URL pública de la web (para compartir inmuebles).
   static const siteUrl = 'https://inmobiliaria-web-blush.vercel.app';
+
+  // Google Places (autocompletar de lugares/direcciones).
+  static const googlePlacesKey = 'AIzaSyCSOUqG4g41KH_c3MZ1ZwsyW_oIIjWju0s';
 }

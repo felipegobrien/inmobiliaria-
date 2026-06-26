@@ -25,6 +25,11 @@ import {
   type PropertyWithImages,
 } from "@inmo/shared";
 import { supabase } from "@/lib/supabase";
+import {
+  placesAutocomplete,
+  placeDetails,
+  type PlaceSuggestion,
+} from "@/lib/places";
 
 // Leaflet usa window: solo en cliente.
 const MapPicker = dynamic(() => import("@/components/MapPicker"), {
@@ -414,10 +419,14 @@ export function PropertyForm({
           />
         </Labeled>
         <Labeled label="Dirección">
-          <input
+          <PlacesAddress
             value={form.address}
-            onChange={(e) => set("address", e.target.value)}
-            className={input}
+            onChange={(v) => set("address", v)}
+            onPicked={(lat, lng) => {
+              setCoords({ lat, lng });
+              setPlaced(true);
+              setRecenter({ lat, lng });
+            }}
           />
         </Labeled>
       </div>
@@ -619,6 +628,85 @@ function Labeled({
       <span className="text-zinc-700 dark:text-zinc-300">{label}</span>
       {children}
     </label>
+  );
+}
+
+// Campo de dirección con autocompletar de Google Places (+ fija el pin).
+function PlacesAddress({
+  value,
+  onChange,
+  onPicked,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onPicked: (lat: number, lng: number) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!value || value.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    let active = true;
+    const t = setTimeout(() => {
+      placesAutocomplete(value)
+        .then((s) => active && setSuggestions(s))
+        .catch(() => {});
+    }, 300);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [value]);
+
+  const pick = async (s: PlaceSuggestion) => {
+    const full = s.secondary ? `${s.main}, ${s.secondary}` : s.main;
+    onChange(full);
+    setSuggestions([]);
+    setBusy(true);
+    const loc = await placeDetails(s.placeId);
+    setBusy(false);
+    if (loc) onPicked(loc.lat, loc.lng);
+  };
+
+  return (
+    <div className="relative">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Escribe y elige tu dirección"
+        className={`${input} w-full`}
+      />
+      {busy && (
+        <span className="absolute right-3 top-2.5 text-xs text-zinc-400">
+          …
+        </span>
+      )}
+      {suggestions.length > 0 && (
+        <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+          {suggestions.map((s) => (
+            <li key={s.placeId}>
+              <button
+                type="button"
+                onClick={() => pick(s)}
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                  {s.main}
+                </span>
+                {s.secondary && (
+                  <span className="block text-xs text-zinc-500">
+                    {s.secondary}
+                  </span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

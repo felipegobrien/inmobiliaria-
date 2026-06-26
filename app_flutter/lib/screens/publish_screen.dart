@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import '../models/property.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
+import '../services/places_service.dart';
 import '../services/app_events.dart';
 import 'detail_screen.dart';
 import 'location_picker_screen.dart';
@@ -435,7 +436,11 @@ class _PublishScreenState extends State<PublishScreen> {
                   PropertyService.searchNeighborhoods(q, _city.text.trim()),
             ),
             _label('Dirección'),
-            TextField(controller: _address),
+            _PlacesAddressField(
+              controller: _address,
+              onPicked: (lat, lng) =>
+                  setState(() => _picked = LatLng(lat, lng)),
+            ),
 
             _label('Código (opcional)'),
             TextField(
@@ -789,6 +794,129 @@ class _PublishScreenState extends State<PublishScreen> {
 }
 
 // Campo con autocompletado (chips de sugerencias debajo).
+// Campo de dirección con autocompletar de Google Places.
+// Al elegir una sugerencia llena el texto y fija el pin (onPicked).
+class _PlacesAddressField extends StatefulWidget {
+  final TextEditingController controller;
+  final void Function(double lat, double lng) onPicked;
+  const _PlacesAddressField(
+      {required this.controller, required this.onPicked});
+
+  @override
+  State<_PlacesAddressField> createState() => _PlacesAddressFieldState();
+}
+
+class _PlacesAddressFieldState extends State<_PlacesAddressField> {
+  List<PlaceSuggestion> _s = [];
+  Timer? _d;
+  bool _busy = false;
+
+  void _onChanged(String v) {
+    _d?.cancel();
+    if (v.trim().length < 3) {
+      setState(() => _s = []);
+      return;
+    }
+    _d = Timer(const Duration(milliseconds: 300), () async {
+      final r = await PlacesService.autocomplete(v.trim());
+      if (mounted) setState(() => _s = r);
+    });
+  }
+
+  Future<void> _select(PlaceSuggestion s) async {
+    FocusScope.of(context).unfocus();
+    widget.controller.text = s.full;
+    setState(() {
+      _s = [];
+      _busy = true;
+    });
+    final loc = await PlacesService.details(s.placeId);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (loc != null) widget.onPicked(loc.lat, loc.lng);
+  }
+
+  @override
+  void dispose() {
+    _d?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: widget.controller,
+          onChanged: _onChanged,
+          decoration: InputDecoration(
+            hintText: 'Escribe y elige tu dirección',
+            suffixIcon: _busy
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2)),
+                  )
+                : null,
+          ),
+        ),
+        if (_s.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (final s in _s.take(5))
+                  InkWell(
+                    onTap: () => _select(s),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined,
+                              size: 18, color: AppColors.textMuted),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(s.main,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600)),
+                                if (s.secondary.isNotEmpty)
+                                  Text(s.secondary,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textMuted)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _AutocompleteField extends StatefulWidget {
   final TextEditingController controller;
   final String hint;
