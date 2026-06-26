@@ -12,6 +12,20 @@ import 'detail_screen.dart';
 String _area(num v) =>
     v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
+/// Etiqueta tipo "Arriendo casa en El Poblado" / "Venta apartamento en Laureles".
+String pinLabel(MapPin p) {
+  final op = p.operation == 'arriendo'
+      ? 'Arriendo'
+      : p.operation == 'venta_arriendo'
+          ? 'Venta y arriendo'
+          : 'Venta';
+  final t = (typeLabels[p.type] ?? p.type).toLowerCase();
+  final place = (p.neighborhood != null && p.neighborhood!.isNotEmpty)
+      ? p.neighborhood!
+      : p.city;
+  return '$op $t en ${titleCase(place)}';
+}
+
 class MapScreen extends StatefulWidget {
   /// Centro inicial opcional (p. ej. la ciudad que se está buscando).
   final LatLng? initialCenter;
@@ -48,15 +62,26 @@ class _MapScreenState extends State<MapScreen> {
         if (!initial) _toast('Permiso de ubicación denegado.');
         return;
       }
+      // 1) Rápido: última posición conocida (casi instantánea).
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null && mounted) {
+        _located = true;
+        _map.move(LatLng(last.latitude, last.longitude), 14);
+        _reload();
+      }
+      // 2) Refina con una lectura nueva (precisión media = más rápida).
       final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      ).timeout(const Duration(seconds: 10));
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.medium),
+      ).timeout(const Duration(seconds: 8));
       if (!mounted) return;
       _located = true;
       _map.move(LatLng(pos.latitude, pos.longitude), 14);
       _reload();
     } catch (_) {
-      if (!initial && mounted) _toast('No pudimos obtener tu ubicación.');
+      if (!initial && mounted && !_located) {
+        _toast('No pudimos obtener tu ubicación.');
+      }
     }
   }
 
@@ -82,6 +107,7 @@ class _MapScreenState extends State<MapScreen> {
         minLat: bounds.south,
         maxLng: bounds.east,
         maxLat: bounds.north,
+        limit: 90,
       );
       if (!mounted) return;
       setState(() {
@@ -285,16 +311,12 @@ class _PricePill extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-              color: selected ? AppColors.primary : const Color(0x22000000)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.22), blurRadius: 6),
-          ],
+              color: selected ? AppColors.primary : const Color(0x33000000)),
         ),
         child: Text(
           _short(pin.price),
@@ -365,7 +387,7 @@ class _SelectedCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      pin.title,
+                      pinLabel(pin),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

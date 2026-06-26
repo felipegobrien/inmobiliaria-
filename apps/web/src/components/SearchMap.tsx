@@ -13,9 +13,24 @@ import "leaflet/dist/leaflet.css";
 import {
   getPropertiesInBounds,
   propertyPath,
+  TYPE_LABELS,
   type MapPin,
+  type PropertyType,
 } from "@inmo/shared";
 import { supabase } from "@/lib/supabase";
+
+// Etiqueta tipo "Arriendo casa en El Poblado" / "Venta apartamento en Laureles".
+function pinLabel(p: MapPin): string {
+  const op =
+    p.operation === "arriendo"
+      ? "Arriendo"
+      : p.operation === "venta_arriendo"
+        ? "Venta y arriendo"
+        : "Venta";
+  const t = (TYPE_LABELS[p.type as PropertyType] ?? p.type).toLowerCase();
+  const place = p.neighborhood && p.neighborhood.length ? p.neighborhood : p.city;
+  return `${op} ${t} en ${place}`;
+}
 
 // Precio abreviado para el pin: $1.5M, $850K…
 function shortPrice(v: number): string {
@@ -81,7 +96,8 @@ function LocateControl({ initial }: { initial: boolean }) {
     navigator.geolocation.getCurrentPosition(
       (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 14),
       () => {},
-      { enableHighAccuracy: true, timeout: 10000 },
+      // rápido: permite posición en caché y no fuerza GPS de alta precisión
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
     );
   }, [map]);
 
@@ -119,6 +135,7 @@ export default function SearchMap() {
           minLat: b.getSouth(),
           maxLng: b.getEast(),
           maxLat: b.getNorth(),
+          limit: 150,
         });
         setPins(data);
       } catch (e) {
@@ -181,7 +198,7 @@ export default function SearchMap() {
             </div>
             <div className="flex flex-1 flex-col justify-center p-3">
               <p className="truncate text-sm font-bold text-zinc-900">
-                {selected.title}
+                {pinLabel(selected)}
               </p>
               <p className="text-lg font-extrabold text-zinc-900">
                 {new Intl.NumberFormat("es-CO", {
