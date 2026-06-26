@@ -1,15 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  useMap,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import {
   getPropertiesInBounds,
   propertyPath,
@@ -119,6 +116,55 @@ function LocateControl({ initial }: { initial: boolean }) {
   );
 }
 
+// Capa con agrupación de pines (clusters) usando leaflet.markercluster.
+function ClusterLayer({
+  pins,
+  onSelect,
+}: {
+  pins: MapPin[];
+  onSelect: (p: MapPin) => void;
+}) {
+  const map = useMap();
+  const groupRef = useRef<L.MarkerClusterGroup | null>(null);
+
+  useEffect(() => {
+    const group = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      maxClusterRadius: 55,
+      iconCreateFunction: (cluster) =>
+        L.divIcon({
+          html: `<div style="
+            background:#047857;color:#fff;border:2px solid #fff;
+            width:40px;height:40px;border-radius:999px;
+            display:flex;align-items:center;justify-content:center;
+            font-weight:800;font-size:14px;font-family:system-ui,sans-serif;
+            box-shadow:0 2px 6px rgba(0,0,0,.3);">${cluster.getChildCount()}</div>`,
+          className: "",
+          iconSize: [40, 40],
+        }),
+    });
+    groupRef.current = group;
+    map.addLayer(group);
+    return () => {
+      map.removeLayer(group);
+      groupRef.current = null;
+    };
+  }, [map]);
+
+  useEffect(() => {
+    const group = groupRef.current;
+    if (!group) return;
+    group.clearLayers();
+    for (const p of pins) {
+      const m = L.marker([p.lat, p.lng], { icon: pinIcon(p) });
+      m.on("click", () => onSelect(p));
+      group.addLayer(m);
+    }
+  }, [pins, onSelect]);
+
+  return null;
+}
+
 export default function SearchMap() {
   const [pins, setPins] = useState<MapPin[]>([]);
   const [loading, setLoading] = useState(false);
@@ -135,7 +181,7 @@ export default function SearchMap() {
           minLat: b.getSouth(),
           maxLng: b.getEast(),
           maxLat: b.getNorth(),
-          limit: 150,
+          limit: 300,
         });
         setPins(data);
       } catch (e) {
@@ -155,19 +201,12 @@ export default function SearchMap() {
         scrollWheelZoom
       >
         <TileLayer
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; OpenStreetMap'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
+          attribution="&copy; OpenStreetMap &copy; CARTO"
         />
         <BoundsWatcher onChange={query} />
         <LocateControl initial />
-        {pins.map((p) => (
-          <Marker
-            key={p.id}
-            position={[p.lat, p.lng]}
-            icon={pinIcon(p)}
-            eventHandlers={{ click: () => setSelected(p) }}
-          />
-        ))}
+        <ClusterLayer pins={pins} onSelect={setSelected} />
       </MapContainer>
 
       {/* Contador / estado */}

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/property.dart';
@@ -107,7 +108,7 @@ class _MapScreenState extends State<MapScreen> {
         minLat: bounds.south,
         maxLng: bounds.east,
         maxLat: bounds.north,
-        limit: 90,
+        limit: 300,
       );
       if (!mounted) return;
       setState(() {
@@ -154,25 +155,47 @@ class _MapScreenState extends State<MapScreen> {
             ),
             children: [
               TileLayer(
+                // Mapa claro y sencillo (CartoDB Positron).
                 urlTemplate:
-                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.example.inmobiliaria',
               ),
-              MarkerLayer(
-                markers: [
-                  for (final p in _pins)
-                    Marker(
-                      point: LatLng(p.lat, p.lng),
-                      width: 96,
-                      height: 38,
-                      alignment: Alignment.center,
-                      child: _PricePill(
-                        pin: p,
-                        selected: _selected?.id == p.id,
-                        onTap: () => setState(() => _selected = p),
+              MarkerClusterLayerWidget(
+                options: MarkerClusterLayerOptions(
+                  maxClusterRadius: 50,
+                  size: const Size(42, 42),
+                  padding: const EdgeInsets.all(50),
+                  markers: [
+                    for (final p in _pins)
+                      Marker(
+                        point: LatLng(p.lat, p.lng),
+                        width: 96,
+                        height: 38,
+                        alignment: Alignment.center,
+                        child: _PricePill(
+                          pin: p,
+                          selected: _selected?.id == p.id,
+                          onTap: () => setState(() => _selected = p),
+                        ),
                       ),
+                  ],
+                  builder: (context, markers) => Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary,
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
-                ],
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${markers.length}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
