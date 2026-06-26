@@ -223,8 +223,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   Widget _planCard(Plan plan) {
     final premium = plan.id == 'premium';
     final featured = plan.isFeatured;
-    const gold = Color(0xFFE6C25C);
-    const black = Color(0xFF121212);
+    const gold = Color(0xFFE8C66A);
+    const black = Color(0xFF33333A);
 
     final borderColor = premium
         ? black

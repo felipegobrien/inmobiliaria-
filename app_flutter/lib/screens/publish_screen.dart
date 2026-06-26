@@ -263,17 +263,17 @@ class _PublishScreenState extends State<PublishScreen> {
                 final plan = widget.plan!;
                 final premium = plan.id == 'premium';
                 final bg = premium
-                    ? const Color(0xFF121212)
+                    ? const Color(0xFF33333A)
                     : (plan.isFeatured
                         ? const Color(0xFFFFFBEB)
                         : const Color(0xFFECFDF5));
                 final border = premium
-                    ? const Color(0xFF121212)
+                    ? const Color(0xFF33333A)
                     : (plan.isFeatured
                         ? const Color(0xFFFDE68A)
                         : const Color(0xFFA7F3D0));
                 final fg = premium
-                    ? const Color(0xFFE6C25C)
+                    ? const Color(0xFFE8C66A)
                     : (plan.isFeatured
                         ? const Color(0xFFD97706)
                         : AppColors.primary);

@@ -36,7 +36,12 @@ class _PropertyCardState extends State<PropertyCard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEAEAED)),
+          border: Border.all(
+            color: property.isPremium
+                ? const Color(0xFFC9A24B) // borde dorado para Premium
+                : const Color(0xFFEAEAED),
+            width: property.isPremium ? 1.5 : 1,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.14),
@@ -52,8 +57,8 @@ class _PropertyCardState extends State<PropertyCard> {
             // Barra de destacado arriba de la ficha (sigue la forma de la card)
             if (property.isPremium)
               _featuredBar(
-                bg: const Color(0xFF121212),
-                fg: const Color(0xFFE6C25C),
+                bg: const Color(0xFF33333A), // negro carbón (no tan oscuro)
+                fg: const Color(0xFFE8C66A),
                 icon: Icons.workspace_premium,
                 label: 'PREMIUM',
               )

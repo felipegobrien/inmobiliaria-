@@ -292,17 +292,17 @@ class _DetailScreenState extends State<DetailScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 5),
                         decoration: BoxDecoration(
-                            color: const Color(0xFF121212),
+                            color: const Color(0xFF33333A),
                             borderRadius: BorderRadius.circular(999)),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.workspace_premium,
-                                size: 14, color: Color(0xFFE6C25C)),
+                                size: 14, color: Color(0xFFE8C66A)),
                             SizedBox(width: 4),
                             Text('Premium',
                                 style: TextStyle(
-                                    color: Color(0xFFE6C25C),
+                                    color: Color(0xFFE8C66A),
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700)),
                           ],

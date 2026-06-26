@@ -29,6 +29,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Amenity> _amenities = [];
   bool _loading = true;
   Timer? _debounce;
+  final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -42,6 +43,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -61,9 +63,22 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _onSearchChanged(String v) {
     _filters.search = v.isEmpty ? null : v;
+    setState(() {}); // refresca el botón de limpiar (x)
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), _load);
   }
+
+  void _clearSearch() {
+    _searchCtrl.clear();
+    _filters.search = null;
+    _debounce?.cancel();
+    setState(() {});
+    _load();
+  }
+
+  void _mapSoon() => ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mapa próximamente 🗺️')),
+      );
 
   Future<void> _openFilters() async {
     final result = await showModalBottomSheet<PropertyFilters>(
@@ -90,56 +105,42 @@ class _SearchScreenState extends State<SearchScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Buscador + Mapa
+            // Buscador (todo el largo)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 12, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: 'Busca por ubicación o palabra clave',
-                        hintStyle: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 14),
-                        prefixIcon:
-                            const Icon(Icons.search, color: AppColors.textMuted),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.border),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.border),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                              color: AppColors.primary, width: 1.5),
-                        ),
-                      ),
-                    ),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: _onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: 'Busca por ubicación o palabra clave',
+                  hintStyle: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 14),
+                  prefixIcon:
+                      const Icon(Icons.search, color: AppColors.textMuted),
+                  suffixIcon: _searchCtrl.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close,
+                              color: AppColors.textMuted, size: 20),
+                          tooltip: 'Borrar',
+                          onPressed: _clearSearch,
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.border),
                   ),
-                  const SizedBox(width: 4),
-                  TextButton(
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Mapa próximamente 🗺️')),
-                    ),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primaryDark,
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                    ),
-                    child: const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.map_outlined, size: 22),
-                        Text('Mapa', style: TextStyle(fontSize: 11)),
-                      ],
-                    ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.border),
                   ),
-                ],
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                        color: AppColors.primary, width: 1.5),
+                  ),
+                ),
               ),
             ),
 
@@ -189,6 +190,30 @@ class _SearchScreenState extends State<SearchScreen> {
                                       fontWeight: FontWeight.w700)),
                             ),
                           ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: _mapSoon,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.map_outlined,
+                              size: 18, color: AppColors.text),
+                          SizedBox(width: 6),
+                          Text('Buscar por mapa',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.text)),
                         ],
                       ),
                     ),
