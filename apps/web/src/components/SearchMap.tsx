@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster";
@@ -52,11 +58,16 @@ function pinIcon(p: MapPin): L.DivIcon {
     fg = "#ffffff";
     border = "#F97316";
   }
+  const star =
+    p.plan === "premium"
+      ? `<span style="color:#E8C66A;margin-right:3px;">★</span>`
+      : "";
   const html = `<div style="
     background:${bg};color:${fg};border:1px solid ${border};
     padding:4px 9px;border-radius:999px;font-weight:800;font-size:12px;
     white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);
-    font-family:system-ui,sans-serif;">${shortPrice(p.price)}</div>`;
+    font-family:system-ui,sans-serif;display:flex;align-items:center;
+    justify-content:center;text-align:center;">${star}${shortPrice(p.price)}</div>`;
   return L.divIcon({
     html,
     className: "",
@@ -84,19 +95,32 @@ function BoundsWatcher({
 }
 
 // Centra el mapa en la ubicación del usuario al abrir, y expone el botón.
-function LocateControl({ initial }: { initial: boolean }) {
+function LocateControl({
+  initial,
+  onUser,
+}: {
+  initial: boolean;
+  onUser: (pos: [number, number]) => void;
+}) {
   const map = useMap();
   const tried = useRef(false);
 
   const locate = useCallback(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 16),
+      (pos) => {
+        const ll: [number, number] = [
+          pos.coords.latitude,
+          pos.coords.longitude,
+        ];
+        map.setView(ll, 16);
+        onUser(ll);
+      },
       () => {},
       // rápido: permite posición en caché y no fuerza GPS de alta precisión
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
     );
-  }, [map]);
+  }, [map, onUser]);
 
   useEffect(() => {
     if (initial && !tried.current) {
@@ -169,7 +193,17 @@ export default function SearchMap() {
   const [pins, setPins] = useState<MapPin[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<MapPin | null>(null);
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const userIcon = L.divIcon({
+    html: `<div style="width:18px;height:18px;border-radius:999px;
+      background:#1A73E8;border:3px solid #fff;
+      box-shadow:0 0 0 1px rgba(0,0,0,.2),0 2px 4px rgba(0,0,0,.3);"></div>`,
+    className: "",
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
 
   const query = useCallback((b: L.LatLngBounds) => {
     if (debounce.current) clearTimeout(debounce.current);
@@ -205,8 +239,9 @@ export default function SearchMap() {
           attribution="&copy; OpenStreetMap &copy; CARTO"
         />
         <BoundsWatcher onChange={query} />
-        <LocateControl initial />
+        <LocateControl initial onUser={setUserPos} />
         <ClusterLayer pins={pins} onSelect={setSelected} />
+        {userPos && <Marker position={userPos} icon={userIcon} />}
       </MapContainer>
 
       {/* Contador / estado */}

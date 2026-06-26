@@ -228,7 +228,16 @@ export function PropertyForm({
       }
       router.push(`/inmueble/${id}`);
     } catch (err: any) {
-      setError(err.message ?? "Ocurrió un error al guardar.");
+      const msg = `${err?.code ?? ""} ${err?.message ?? ""}`.toLowerCase();
+      if (
+        msg.includes("idx_properties_code") ||
+        msg.includes("23505") ||
+        (msg.includes("duplicate") && msg.includes("code"))
+      ) {
+        setError("Ese código ya existe, elige otro.");
+      } else {
+        setError(err.message ?? "Ocurrió un error al guardar.");
+      }
       setSaving(false);
     }
   };

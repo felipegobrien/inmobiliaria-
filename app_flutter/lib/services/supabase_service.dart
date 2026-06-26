@@ -103,6 +103,52 @@ class PropertyService {
         .toList();
   }
 
+  /// Sugerencias de lugares para autocompletar (OpenStreetMap / Nominatim),
+  /// dando prioridad a los resultados cercanos al área visible del mapa.
+  static Future<List<({String label, double lat, double lng})>>
+      geocodeSuggestions(
+    String query, {
+    double? minLng,
+    double? minLat,
+    double? maxLng,
+    double? maxLat,
+  }) async {
+    if (query.trim().length < 3) return [];
+    try {
+      final qp = <String, String>{
+        'format': 'json',
+        'limit': '6',
+        'countrycodes': 'co',
+        'accept-language': 'es',
+        'q': query,
+      };
+      // viewbox = izquierda,arriba,derecha,abajo  (prioriza la zona visible)
+      if (minLng != null &&
+          minLat != null &&
+          maxLng != null &&
+          maxLat != null) {
+        qp['viewbox'] = '$minLng,$maxLat,$maxLng,$minLat';
+        qp['bounded'] = '0';
+      }
+      final uri = Uri.https('nominatim.openstreetmap.org', '/search', qp);
+      final r = await http.get(uri, headers: {
+        'User-Agent': 'inmobiliaria-app/1.0 (contacto@inmobiliaria.app)',
+      }).timeout(const Duration(seconds: 8));
+      if (r.statusCode != 200) return [];
+      final list = jsonDecode(r.body) as List;
+      return [
+        for (final e in list)
+          (
+            label: e['display_name'] as String,
+            lat: double.parse(e['lat'] as String),
+            lng: double.parse(e['lon'] as String),
+          ),
+      ];
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// Geocodifica una dirección/barrio/ciudad a coordenadas (OpenStreetMap).
   /// Devuelve null si no encuentra nada. No bloquea la publicación si falla.
   static Future<({double lat, double lng})?> geocode(String query) async {

@@ -23,24 +23,68 @@ class _MapScreenState extends State<MapScreen> {
   final _map = MapController();
   final _placeCtrl = TextEditingController();
   Timer? _debounce;
+  Timer? _suggestDebounce;
   List<MapPin> _pins = [];
   MapPin? _selected;
   Property? _selectedProperty; // ficha completa del pin tocado
+  LatLng? _userPos; // ubicación del usuario (pin azul)
+  List<({String label, double lat, double lng})> _suggestions = [];
   bool _loading = false;
   bool _searching = false;
 
-  /// Busca un lugar por nombre/dirección y centra el mapa ahí.
+  /// Mientras escribe, busca sugerencias de lugares cercanos a la vista.
+  void _onPlaceChanged(String v) {
+    setState(() {});
+    _suggestDebounce?.cancel();
+    if (v.trim().length < 3) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    _suggestDebounce = Timer(const Duration(milliseconds: 350), () async {
+      LatLngBounds? b;
+      try {
+        b = _map.camera.visibleBounds;
+      } catch (_) {}
+      final s = await PropertyService.geocodeSuggestions(
+        v,
+        minLng: b?.west,
+        minLat: b?.south,
+        maxLng: b?.east,
+        maxLat: b?.north,
+      );
+      if (mounted) setState(() => _suggestions = s);
+    });
+  }
+
+  void _goTo(double lat, double lng, String label) {
+    FocusScope.of(context).unfocus();
+    _placeCtrl.text = label.split(',').first;
+    setState(() => _suggestions = []);
+    _closeCard();
+    _map.move(LatLng(lat, lng), 15);
+    _reload();
+  }
+
+  /// Busca el primer resultado (al darle "enter").
   Future<void> _searchPlace(String q) async {
     if (q.trim().isEmpty) return;
     FocusScope.of(context).unfocus();
     setState(() => _searching = true);
-    final c = await PropertyService.geocode(q);
+    LatLngBounds? b;
+    try {
+      b = _map.camera.visibleBounds;
+    } catch (_) {}
+    final list = await PropertyService.geocodeSuggestions(
+      q,
+      minLng: b?.west,
+      minLat: b?.south,
+      maxLng: b?.east,
+      maxLat: b?.north,
+    );
     if (!mounted) return;
     setState(() => _searching = false);
-    if (c != null) {
-      _closeCard();
-      _map.move(LatLng(c.lat, c.lng), 14);
-      _reload();
+    if (list.isNotEmpty) {
+      _goTo(list.first.lat, list.first.lng, list.first.label);
     } else {
       _toast('No encontramos ese lugar.');
     }
@@ -85,7 +129,8 @@ class _MapScreenState extends State<MapScreen> {
       final last = await Geolocator.getLastKnownPosition();
       if (last != null && mounted) {
         _located = true;
-        _map.move(LatLng(last.latitude, last.longitude), 16);
+        setState(() => _userPos = LatLng(last.latitude, last.longitude));
+        _map.move(_userPos!, 16);
         _reload();
       }
       // 2) Refina con una lectura nueva (precisión media = más rápida).
@@ -95,7 +140,8 @@ class _MapScreenState extends State<MapScreen> {
       ).timeout(const Duration(seconds: 8));
       if (!mounted) return;
       _located = true;
-      _map.move(LatLng(pos.latitude, pos.longitude), 16);
+      setState(() => _userPos = LatLng(pos.latitude, pos.longitude));
+      _map.move(_userPos!, 16);
       _reload();
     } catch (_) {
       if (!initial && mounted && !_located) {
@@ -146,6 +192,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _suggestDebounce?.cancel();
     _placeCtrl.dispose();
     super.dispose();
   }
@@ -222,6 +269,29 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ),
               ),
+              // Pin de la ubicación del usuario (punto azul)
+              if (_userPos != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _userPos!,
+                      width: 24,
+                      height: 24,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFF1A73E8),
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                blurRadius: 4),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
 
@@ -230,67 +300,118 @@ class _MapScreenState extends State<MapScreen> {
             top: MediaQuery.of(context).padding.top + 8,
             left: 12,
             right: 12,
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _circleButton(
-                  icon: Icons.arrow_back,
-                  onTap: () => Navigator.pop(context),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    height: 46,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(999),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.18),
-                            blurRadius: 8),
-                      ],
+                Row(
+                  children: [
+                    _circleButton(
+                      icon: Icons.arrow_back,
+                      onTap: () => Navigator.pop(context),
                     ),
-                    child: Row(
-                      children: [
-                        _searching
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.primary),
-                              )
-                            : const Icon(Icons.search,
-                                size: 20, color: AppColors.textMuted),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: _placeCtrl,
-                            textInputAction: TextInputAction.search,
-                            onChanged: (_) => setState(() {}),
-                            onSubmitted: _searchPlace,
-                            decoration: const InputDecoration(
-                              isCollapsed: true,
-                              border: InputBorder.none,
-                              hintText: 'Busca un lugar o dirección',
-                              hintStyle: TextStyle(
-                                  color: AppColors.textMuted, fontSize: 14),
-                            ),
-                          ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        height: 46,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.18),
+                                blurRadius: 8),
+                          ],
                         ),
-                        if (_placeCtrl.text.isNotEmpty)
-                          GestureDetector(
-                            onTap: () {
-                              _placeCtrl.clear();
-                              setState(() {});
-                            },
-                            child: const Icon(Icons.close,
-                                size: 18, color: AppColors.textMuted),
-                          ),
-                      ],
+                        child: Row(
+                          children: [
+                            _searching
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary),
+                                  )
+                                : const Icon(Icons.search,
+                                    size: 20, color: AppColors.textMuted),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _placeCtrl,
+                                textInputAction: TextInputAction.search,
+                                onChanged: _onPlaceChanged,
+                                onSubmitted: _searchPlace,
+                                decoration: const InputDecoration(
+                                  isCollapsed: true,
+                                  border: InputBorder.none,
+                                  hintText: 'Busca un lugar o dirección',
+                                  hintStyle: TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 14),
+                                ),
+                              ),
+                            ),
+                            if (_placeCtrl.text.isNotEmpty)
+                              GestureDetector(
+                                onTap: () {
+                                  _placeCtrl.clear();
+                                  setState(() => _suggestions = []);
+                                },
+                                child: const Icon(Icons.close,
+                                    size: 18, color: AppColors.textMuted),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                // Lista de sugerencias de lugares
+                if (_suggestions.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 50, top: 6),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.18),
+                              blurRadius: 8),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final s in _suggestions.take(6))
+                            InkWell(
+                              onTap: () => _goTo(s.lat, s.lng, s.label),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.location_on_outlined,
+                                        size: 18, color: AppColors.textMuted),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        s.label,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -480,10 +601,21 @@ class _PricePill extends StatelessWidget {
           border: Border.all(
               color: selected ? AppColors.primary : const Color(0x33000000)),
         ),
-        child: Text(
-          _short(pin.price),
-          style: TextStyle(
-              color: fg, fontWeight: FontWeight.w800, fontSize: 13),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (pin.isPremium) ...[
+              const Icon(Icons.star, size: 13, color: Color(0xFFE8C66A)),
+              const SizedBox(width: 3),
+            ],
+            Text(
+              _short(pin.price),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: fg, fontWeight: FontWeight.w800, fontSize: 13),
+            ),
+          ],
         ),
       ),
     );

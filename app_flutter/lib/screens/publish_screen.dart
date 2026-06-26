@@ -240,8 +240,14 @@ class _PublishScreenState extends State<PublishScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        final s = e.toString().toLowerCase();
+        final dup = s.contains('idx_properties_code') ||
+            (s.contains('duplicate') && s.contains('code')) ||
+            s.contains('23505');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(dup
+                ? 'Ese código ya existe, elige otro.'
+                : 'Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
