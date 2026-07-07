@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import '../config.dart';
 import '../theme.dart';
 import '../services/supabase_service.dart';
 import '../services/app_events.dart';
@@ -138,6 +139,72 @@ class _AccountScreenState extends State<AccountScreen> {
     }
     if (msg.contains('is invalid')) return 'Usa un correo real y válido.';
     return msg;
+  }
+
+  /// Envía el correo de recuperación. El enlace abre la página web
+  /// /restablecer, donde el usuario crea su contraseña nueva.
+  Future<void> _forgotPassword() async {
+    final ctrl = TextEditingController(text: _email.text.trim());
+    final email = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Recuperar contraseña'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Te enviaremos un correo con un enlace para crear una contraseña nueva.',
+              style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+              decoration:
+                  const InputDecoration(hintText: 'Correo electrónico'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+    if (email == null || email.isEmpty) return;
+    try {
+      await supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: '${Config.siteUrl}/restablecer',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'Si $email está registrado, te llegará un correo con el enlace. Revisa también spam.')));
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.message.contains('rate limit') ||
+                    e.message.contains('security purposes')
+                ? 'Espera un momento antes de pedir otro correo.'
+                : _traducir(e.message))));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 
   Future<void> _submit() async {
@@ -363,7 +430,19 @@ class _AccountScreenState extends State<AccountScreen> {
                 obscureText: true,
                 decoration: const InputDecoration(hintText: 'Contraseña'),
               ),
-              const SizedBox(height: 20),
+              if (_isLogin)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _forgotPassword,
+                    child: const Text('¿Olvidaste tu contraseña?',
+                        style: TextStyle(
+                            color: AppColors.primaryDark,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13)),
+                  ),
+                ),
+              SizedBox(height: _isLogin ? 8 : 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
