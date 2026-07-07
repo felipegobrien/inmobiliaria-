@@ -8,7 +8,20 @@ import {
 } from "@inmo/shared";
 import { FavoriteButton } from "./FavoriteButton";
 
-export function PropertyCard({ property }: { property: PropertyWithImages }) {
+export function PropertyCard({
+  property,
+  href,
+  hideFavorite = false,
+  hideAgency = false,
+}: {
+  property: PropertyWithImages;
+  /** Enlace de la ficha; por defecto la página del portal (/inmueble/...). */
+  href?: string;
+  /** Ocultar el corazón de favoritos (sitios de marca blanca sin login). */
+  hideFavorite?: boolean;
+  /** Ocultar la franja/logo de la inmobiliaria (redundante en su propio sitio). */
+  hideAgency?: boolean;
+}) {
   const cover =
     property.property_images?.find((i) => i.is_cover)?.url ??
     property.property_images?.[0]?.url;
@@ -17,7 +30,7 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
 
   return (
     <Link
-      href={propertyPath(property)}
+      href={href ?? propertyPath(property)}
       className={`group flex flex-col overflow-hidden rounded-xl bg-white shadow-sm transition hover:shadow-md dark:bg-zinc-900 ${
         isPremium
           ? "border-2 border-[#C9A24B]"
@@ -58,11 +71,14 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
         <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-800 shadow">
           {OPERATION_LABELS[property.operation]}
         </span>
-        <FavoriteButton
-          propertyId={property.id}
-          className="absolute right-3 top-3"
-        />
-        {property.owner?.role === "inmobiliaria" &&
+        {!hideFavorite && (
+          <FavoriteButton
+            propertyId={property.id}
+            className="absolute right-3 top-3"
+          />
+        )}
+        {!hideAgency &&
+          property.owner?.role === "inmobiliaria" &&
           property.owner.company &&
           property.owner.avatar_url && (
             <span className="absolute bottom-3 left-3 flex h-11 w-[70px] items-center justify-center overflow-hidden rounded-lg border-2 border-white bg-white shadow-md">
@@ -76,13 +92,15 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
           )}
       </div>
 
-      {property.owner?.role === "inmobiliaria" && property.owner.company && (
-        <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800/40">
-          <span className="block truncate text-base font-semibold capitalize text-emerald-800 dark:text-emerald-300">
-            {property.owner.company}
-          </span>
-        </div>
-      )}
+      {!hideAgency &&
+        property.owner?.role === "inmobiliaria" &&
+        property.owner.company && (
+          <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800/40">
+            <span className="block truncate text-base font-semibold capitalize text-emerald-800 dark:text-emerald-300">
+              {property.owner.company}
+            </span>
+          </div>
+        )}
 
       <div className="flex flex-1 flex-col gap-1 p-4">
         <h3 className="line-clamp-2 font-semibold leading-snug text-zinc-900 dark:text-zinc-50">

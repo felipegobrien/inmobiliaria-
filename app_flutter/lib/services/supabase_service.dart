@@ -553,6 +553,24 @@ class PropertyService {
     return (data as List).cast<Map<String, dynamic>>();
   }
 
+  /// Inmobiliarias aprobadas con su slug y dominio (panel admin).
+  static Future<List<Map<String, dynamic>>> listAgencies() async {
+    final data = await supabase
+        .from('profiles')
+        .select('id, company, agency_slug, agency_domain')
+        .eq('role', 'inmobiliaria')
+        .order('company');
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Guardar (o quitar, con null) el dominio propio de una inmobiliaria.
+  /// El sitio de marca blanca lo resuelve por este campo.
+  static Future<void> setAgencyDomain(String userId, String? domain) async {
+    await supabase
+        .from('profiles')
+        .update({'agency_domain': domain}).eq('id', userId);
+  }
+
   /// Bloquear/desbloquear: oculta o reactiva sus publicaciones.
   static Future<void> setUserBlocked(String userId, bool blocked) async {
     await supabase.from('profiles').update({'blocked': blocked}).eq('id', userId);

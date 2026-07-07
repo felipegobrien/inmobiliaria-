@@ -17,6 +17,8 @@ class _AdminScreenState extends State<AdminScreen> {
   final _bancolombiaCtrl = TextEditingController();
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _requests = [];
+  List<Map<String, dynamic>> _agencies = [];
+  final Map<String, TextEditingController> _domainCtrls = {};
   bool _promoEnabled = true;
   final _promoDaysCtrl = TextEditingController(text: '90');
   bool _loading = true;
@@ -32,6 +34,9 @@ class _AdminScreenState extends State<AdminScreen> {
     for (final c in _priceCtrls.values) {
       c.dispose();
     }
+    for (final c in _domainCtrls.values) {
+      c.dispose();
+    }
     _bancolombiaCtrl.dispose();
     _promoDaysCtrl.dispose();
     super.dispose();
@@ -44,6 +49,7 @@ class _AdminScreenState extends State<AdminScreen> {
       final info = await PropertyService.getSetting('bancolombia_info');
       final users = await PropertyService.listProfiles();
       final reqs = await PropertyService.agencyRequests();
+      final agencies = await PropertyService.listAgencies();
       final promoEnabled = await PropertyService.getSetting('agency_promo_enabled');
       final promoDays = await PropertyService.getSetting('agency_promo_days');
       for (final p in plans) {
@@ -52,11 +58,17 @@ class _AdminScreenState extends State<AdminScreen> {
       _bancolombiaCtrl.text = info ?? '';
       _promoEnabled = (promoEnabled ?? 'true') == 'true';
       _promoDaysCtrl.text = promoDays ?? '90';
+      for (final a in agencies) {
+        final id = a['id'] as String;
+        _domainCtrls.putIfAbsent(id, () => TextEditingController());
+        _domainCtrls[id]!.text = (a['agency_domain'] as String?) ?? '';
+      }
       if (mounted) {
         setState(() {
           _plans = plans;
           _users = users;
           _requests = reqs;
+          _agencies = agencies;
           _loading = false;
         });
       }
@@ -161,6 +173,36 @@ class _AdminScreenState extends State<AdminScreen> {
       _load();
     } catch (e) {
       _msg('Error: $e');
+    }
+  }
+
+  Future<void> _saveDomain(Map<String, dynamic> agency) async {
+    final id = agency['id'] as String;
+    // Normalizar: sin https://, sin barra final, en minúsculas.
+    var domain = _domainCtrls[id]!
+        .text
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'^https?://'), '')
+        .replaceAll(RegExp(r'/.*$'), '');
+    _domainCtrls[id]!.text = domain;
+    if (domain.isNotEmpty &&
+        !RegExp(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$')
+            .hasMatch(domain)) {
+      _msg('Dominio inválido. Ej: inmobiliariagomez.com');
+      return;
+    }
+    try {
+      await PropertyService.setAgencyDomain(id, domain.isEmpty ? null : domain);
+      _msg(domain.isEmpty
+          ? 'Dominio quitado. Su sitio queda en /sitio/${agency['agency_slug']}'
+          : 'Dominio guardado. Recuerda agregarlo también en Vercel (Domains).');
+      _load();
+    } catch (e) {
+      final s = e.toString();
+      _msg(s.contains('idx_profiles_agency_domain') || s.contains('duplicate')
+          ? 'Ese dominio ya está asignado a otra inmobiliaria.'
+          : 'Error: $e');
     }
   }
 
@@ -277,6 +319,22 @@ class _AdminScreenState extends State<AdminScreen> {
                   ],
                   badge: pending > 0 ? pending : null,
                 ),
+
+                _card(Icons.language_outlined,
+                    'Dominios de inmobiliarias', [
+                  const Text(
+                    'Cada inmobiliaria tiene su sitio en /sitio/<slug>. '
+                    'Si conecta un dominio propio, guárdalo aquí y agrégalo '
+                    'también en Vercel (Settings → Domains).',
+                    style:
+                        TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 10),
+                  if (_agencies.isEmpty)
+                    const Text('No hay inmobiliarias aprobadas.',
+                        style: TextStyle(color: AppColors.textMuted)),
+                  for (final a in _agencies) _agencyDomainTile(a),
+                ]),
 
                 _card(Icons.people_outline, 'Usuarios (${_users.length})', [
                   for (final u in _users) _userTile(u),
@@ -432,6 +490,69 @@ class _AdminScreenState extends State<AdminScreen> {
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _agencyDomainTile(Map<String, dynamic> a) {
+    final id = a['id'] as String;
+    final hasDomain = ((a['agency_domain'] as String?) ?? '').isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                    titleCase((a['company'] as String?) ?? 'Inmobiliaria'),
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+              if (hasDomain)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(999)),
+                  child: const Text('dominio propio',
+                      style: TextStyle(color: Colors.white, fontSize: 11)),
+                ),
+            ],
+          ),
+          Text('/sitio/${a['agency_slug'] ?? '—'}',
+              style:
+                  const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _domainCtrls[id],
+                  keyboardType: TextInputType.url,
+                  autocorrect: false,
+                  decoration: const InputDecoration(
+                      hintText: 'ej. inmobiliariagomez.com', isDense: true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => _saveDomain(a),
+                style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12)),
+                child: const Text('Guardar'),
+              ),
+            ],
+          ),
         ],
       ),
     );

@@ -10,6 +10,10 @@ la misma base de datos** (Supabase).
 inmobiliaria/                  (monorepo — npm workspaces)
 ├── supabase/migrations/       Esquema SQL (tablas, índices, RLS, storage)
 ├── packages/shared/           Tipos + cliente Supabase + consultas (web y app)
+├── app_flutter/               App móvil principal (Flutter)
+├── app_agencia/               App de marca blanca: una app propia por cada
+│                              inmobiliaria (solo su catálogo, sin publicar).
+│                              Ver app_agencia/README.md
 └── apps/
     ├── web/                   Next.js (React)  — sitio web
     └── mobile/                Expo (React Native) — app iOS/Android
