@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../services/supabase_service.dart';
 import '../services/app_events.dart';
 import 'admin_screen.dart';
+import 'agency_panel_screen.dart';
 import 'reported_screen.dart';
 import 'crop_screen.dart';
 
@@ -316,6 +317,26 @@ class _AccountScreenState extends State<AccountScreen> {
                 const SizedBox(height: 8),
                 _roleBadge(),
                 const SizedBox(height: 28),
+                if (_role == 'inmobiliaria')
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const AgencyPanelScreen()),
+                        );
+                        _loadRole(); // refresca logo si lo cambió en el panel
+                      },
+                      icon: const Icon(Icons.storefront_outlined),
+                      label: const Text('Panel de mi inmobiliaria'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 13),
+                      ),
+                    ),
+                  ),
                 if (_role == 'admin') ...[
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),

@@ -553,6 +553,26 @@ class PropertyService {
     return (data as List).cast<Map<String, dynamic>>();
   }
 
+  /// Perfil completo de la inmobiliaria del usuario actual (su panel).
+  static Future<Map<String, dynamic>?> myAgencyProfile() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return null;
+    final data = await supabase
+        .from('profiles')
+        .select(
+            'id, company, agency_slug, agency_domain, phone, whatsapp, avatar_url, verified, agency_promo_until, role')
+        .eq('id', user.id)
+        .maybeSingle();
+    return data;
+  }
+
+  /// La inmobiliaria actualiza sus propios datos (contacto y dominio).
+  static Future<void> updateMyAgencyProfile(Map<String, dynamic> fields) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+    await supabase.from('profiles').update(fields).eq('id', user.id);
+  }
+
   /// Inmobiliarias aprobadas con su slug y dominio (panel admin).
   static Future<List<Map<String, dynamic>>> listAgencies() async {
     final data = await supabase
