@@ -114,6 +114,8 @@ export interface PropertyWithImages extends Property {
 export interface PropertyFilters {
   operation?: OperationType;
   type?: PropertyType;
+  /** Limitar a los inmuebles de un dueño (sitios de marca blanca). */
+  ownerId?: string;
   city?: string;
   search?: string;          // texto libre (título / barrio)
   minPrice?: number;
