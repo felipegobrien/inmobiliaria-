@@ -223,14 +223,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   Widget _planCard(Plan plan) {
     final premium = plan.id == 'premium';
     final featured = plan.isFeatured;
-    const gold = Color(0xFFE8C66A);
-    const black = Color(0xFF33333A);
+    const gold = Color(0xFFD4AF37); // dorado metálico (borde)
+    const goldDeep = Color(0xFF9A7B1E); // dorado oscuro (texto/botón, legible)
 
     final borderColor = premium
-        ? black
+        ? gold
         : (featured ? const Color(0xFFFDE68A) : AppColors.border);
     final accent = premium
-        ? black
+        ? goldDeep
         : (featured ? const Color(0xFF92400E) : AppColors.primaryDark);
 
     return Container(
@@ -252,7 +252,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       ? Icons.workspace_premium
                       : (featured ? Icons.star : Icons.check_circle),
                   color: premium
-                      ? black
+                      ? goldDeep
                       : (featured
                           ? const Color(0xFFD97706)
                           : AppColors.primary)),
@@ -282,7 +282,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               onPressed: () => _choosePlan(plan),
               style: premium
                   ? ElevatedButton.styleFrom(
-                      backgroundColor: black, foregroundColor: gold)
+                      backgroundColor: goldDeep, foregroundColor: Colors.white)
                   : featured
                       ? ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFD97706))
