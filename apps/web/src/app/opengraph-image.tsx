@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Inmobiliaria — Encuentra tu próximo hogar en Colombia";
+export const alt = "Casality — Encuentra tu próximo hogar en Colombia";
 
 export default function Image() {
   return new ImageResponse(
@@ -20,8 +20,10 @@ export default function Image() {
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ fontSize: 90, marginBottom: 10 }}>🏠</div>
-        <div style={{ fontSize: 72, fontWeight: 800 }}>Inmobiliaria</div>
+        <div style={{ display: "flex", fontSize: 92, fontWeight: 800, letterSpacing: -2 }}>
+          <span style={{ color: "#6ee7b7" }}>Casa</span>
+          <span style={{ color: "white" }}>lity</span>
+        </div>
         <div style={{ fontSize: 36, marginTop: 12, color: "#a7f3d0" }}>
           Encuentra tu próximo hogar en Colombia
         </div>

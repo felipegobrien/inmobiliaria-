@@ -247,8 +247,9 @@ export default function Home() {
       {/* FOOTER */}
       <footer className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-zinc-500 sm:flex-row">
-          <span className="font-bold text-emerald-800 dark:text-emerald-400">
-            🏠 Inmobiliaria
+          <span className="text-base font-extrabold tracking-tight">
+            <span className="text-emerald-700 dark:text-emerald-400">Casa</span>
+            <span className="text-zinc-900 dark:text-white">lity</span>
           </span>
           <span>Hecho en Colombia · {new Date().getFullYear()}</span>
         </div>

@@ -29,7 +29,7 @@ class InmobiliariaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Inmobiliaria',
+      title: 'Casality',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       home: const HomeScreen(),

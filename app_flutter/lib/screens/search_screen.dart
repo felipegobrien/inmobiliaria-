@@ -131,9 +131,35 @@ class _SearchScreenState extends State<SearchScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Logo Casality (wordmark)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: const TextSpan(
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: 'Casa',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
+                      TextSpan(
+                        text: 'lity',
+                        style: TextStyle(color: AppColors.text),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             // Buscador (todo el largo)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
               child: TextField(
                 controller: _searchCtrl,
                 onChanged: _onSearchChanged,

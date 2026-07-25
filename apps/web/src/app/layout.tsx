@@ -19,8 +19,8 @@ import { SITE_URL } from "@/lib/supabase-server";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Inmobiliaria — Encuentra tu próximo hogar en Colombia",
-    template: "%s | Inmobiliaria",
+    default: "Casality — Encuentra tu próximo hogar en Colombia",
+    template: "%s | Casality",
   },
   description:
     "Portal inmobiliario: compra, vende y arrienda apartamentos, casas y más en toda Colombia.",

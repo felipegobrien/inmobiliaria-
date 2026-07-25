@@ -11,9 +11,10 @@ export function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Link
           href="/"
-          className="text-xl font-bold text-emerald-800 dark:text-emerald-400"
+          aria-label="Casality — inicio"
+          className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white"
         >
-          🏠 Inmobiliaria
+          <span className="text-emerald-700 dark:text-emerald-400">Casa</span>lity
         </Link>
 
         <nav className="flex items-center gap-3 text-sm">
