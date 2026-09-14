@@ -12,4 +12,4 @@ export function getServerSupabase() {
 // URL base del sitio (configúrala en producción).
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-  "https://inmobiliaria.example.com";
+  "https://ercada.com";
