@@ -150,11 +150,19 @@ export default function Home() {
 
               <button
                 onClick={() => setShowFilters((v) => !v)}
+                aria-expanded={showFilters}
                 className="rounded-xl bg-emerald-700 px-6 py-3 font-semibold text-white transition hover:bg-emerald-800"
               >
                 {showFilters ? "Ocultar filtros" : "Más filtros"}
               </button>
             </div>
+
+            {/* Panel de filtros (se abre/cierra aquí mismo) */}
+            {showFilters && (
+              <div className="mt-3 text-left">
+                <Filters filters={filters} onChange={setFilters} />
+              </div>
+            )}
           </div>
 
           {/* Chips de categorías */}
@@ -194,12 +202,6 @@ export default function Home() {
 
       {/* RESULTADOS */}
       <main className="mx-auto max-w-6xl px-4 pb-16">
-        {showFilters && (
-          <div className="-mt-2 mb-6">
-            <Filters filters={filters} onChange={setFilters} />
-          </div>
-        )}
-
         <div className="mb-5 mt-2 flex items-center justify-between">
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
             {filters.operation === "arriendo"
@@ -211,9 +213,24 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <a
               href="/mapa"
-              className="flex items-center gap-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300"
+              className="group inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 shadow-sm transition hover:bg-emerald-700 hover:text-white hover:shadow-md dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-600 dark:hover:text-white"
             >
-              🗺️ Ver en mapa
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z" />
+                <path d="M9 3v15M15 6v15" />
+              </svg>
+              <span className="sm:hidden">Mapa</span>
+              <span className="hidden sm:inline">Ver en el mapa</span>
             </a>
             <span className="text-sm text-zinc-500">
               {loading ? "Buscando…" : `${count} resultados`}
