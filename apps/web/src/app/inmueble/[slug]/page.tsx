@@ -147,8 +147,8 @@ export default async function PropertyDetailPage({
           <div className="flex flex-col gap-5 lg:col-span-2">
             {/* Box: cabecera */}
             <section className={box}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {property.featured && (
                     <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
                       ★ Destacado
@@ -161,7 +161,7 @@ export default async function PropertyDetailPage({
                     {TYPE_LABELS[property.type]}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <ShareButton title={property.title} />
                   <FavoriteButton propertyId={property.id} />
                 </div>
