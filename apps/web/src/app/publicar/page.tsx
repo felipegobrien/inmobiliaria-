@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   getPlans,
@@ -42,6 +42,9 @@ export default function PublicarPage() {
   const [agencyPromo, setAgencyPromo] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Evita doble publicación (doble clic): el estado no se actualiza a tiempo
+  // entre clics, así que usamos una bandera inmediata.
+  const publishingRef = useRef(false);
 
   useEffect(() => {
     // Ocultamos el plan premium por ahora (se puede reactivar luego).
@@ -88,6 +91,8 @@ export default function PublicarPage() {
   // Publica de verdad: sube fotos, aplica el plan y crea el inmueble.
   const finalize = async (plan: Plan, data: CollectedProperty | null = collected) => {
     if (!data || !user) return;
+    if (publishingRef.current) return; // ya se está publicando
+    publishingRef.current = true;
     setPublishing(true);
     setError(null);
     try {
@@ -117,6 +122,7 @@ export default function PublicarPage() {
     } catch (err: any) {
       setError(err?.message ?? "No se pudo publicar. Intenta de nuevo.");
       setPublishing(false);
+      publishingRef.current = false; // permite reintentar tras un error
     }
   };
 
@@ -278,13 +284,18 @@ export default function PublicarPage() {
                   )}
                   <button
                     onClick={() => pickPlan(p)}
-                    className={`mt-4 w-full rounded-lg py-3 font-medium text-white ${
+                    disabled={publishing}
+                    className={`mt-4 w-full rounded-lg py-3 font-medium text-white disabled:opacity-50 ${
                       p.is_featured
                         ? "bg-amber-600 hover:bg-amber-700"
                         : "bg-emerald-700 hover:bg-emerald-800"
                     }`}
                   >
-                    {p.price === 0 ? "Publicar gratis" : `Elegir ${p.name}`}
+                    {publishing
+                      ? "Publicando…"
+                      : p.price === 0
+                        ? "Publicar gratis"
+                        : `Elegir ${p.name}`}
                   </button>
                 </div>
               ))}
