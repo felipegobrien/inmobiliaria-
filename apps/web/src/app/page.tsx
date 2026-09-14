@@ -251,7 +251,18 @@ export default function Home() {
             <span className="text-emerald-700 dark:text-emerald-400">Erca</span>
             <span className="text-zinc-900 dark:text-white">da</span>
           </span>
-          <span>Hecho en Colombia · {new Date().getFullYear()}</span>
+          <span>
+            Hecho y administrado por{" "}
+            <a
+              href="https://deconmadigital.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+            >
+              Deconma
+            </a>{" "}
+            · {new Date().getFullYear()}
+          </span>
         </div>
       </footer>
     </div>
