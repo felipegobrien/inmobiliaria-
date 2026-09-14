@@ -7,6 +7,8 @@ import {
   getSetting,
   getProfile,
   isAgencyPromoActive,
+  createProperty,
+  uploadPropertyImage,
   formatPrice,
   type Plan,
 } from "@inmo/shared";
@@ -23,9 +25,10 @@ const AGENCY_PLAN: Plan = {
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/Header";
-import { PropertyForm } from "@/components/PropertyForm";
+import { PropertyForm, type CollectedProperty } from "@/components/PropertyForm";
 
-type Step = "intro" | "plan" | "pago" | "form";
+// Orden: intro → formulario → plan → pago → publicar
+type Step = "intro" | "form" | "plan" | "pago";
 
 export default function PublicarPage() {
   const router = useRouter();
@@ -35,6 +38,10 @@ export default function PublicarPage() {
   const [bancolombia, setBancolombia] = useState("");
   const [step, setStep] = useState<Step>("intro");
   const [chosen, setChosen] = useState<Plan | null>(null);
+  const [collected, setCollected] = useState<CollectedProperty | null>(null);
+  const [agencyPromo, setAgencyPromo] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Ocultamos el plan premium por ahora (se puede reactivar luego).
@@ -44,7 +51,7 @@ export default function PublicarPage() {
     getSetting(supabase, "bancolombia_info")
       .then((v) => setBancolombia(v ?? ""))
       .catch(console.error);
-    // Inmobiliaria con promo activa: publica gratis y destacado.
+    // Inmobiliaria con promo activa: publica gratis y destacado (sin elegir plan).
     if (user) {
       getProfile(supabase, user.id)
         .then((p) => {
@@ -52,8 +59,7 @@ export default function PublicarPage() {
             p?.role === "inmobiliaria" &&
             isAgencyPromoActive(p.agency_promo_until)
           ) {
-            setChosen(AGENCY_PLAN);
-            setStep("form");
+            setAgencyPromo(true);
           }
         })
         .catch(() => {});
@@ -69,19 +75,67 @@ export default function PublicarPage() {
     );
   }
 
-  const pickPlan = (p: Plan) => {
-    setChosen(p);
-    setStep(p.price > 0 ? "pago" : "form");
-  };
-
   // Al pulsar "Publicar" en el instructivo: si no hay sesión, pide login
-  // (y vuelve aquí); si ya hay sesión, pasa a elegir plan.
+  // (y vuelve aquí); si ya hay sesión, pasa a llenar el formulario.
   const startPublishing = () => {
     if (!user) {
       router.push("/login?redirect=/publicar");
     } else {
+      setStep("form");
+    }
+  };
+
+  // Publica de verdad: sube fotos, aplica el plan y crea el inmueble.
+  const finalize = async (plan: Plan, data: CollectedProperty | null = collected) => {
+    if (!data || !user) return;
+    setPublishing(true);
+    setError(null);
+    try {
+      const urls: string[] = [];
+      for (const file of data.files) {
+        const ext = file.name.split(".").pop() ?? "jpg";
+        urls.push(await uploadPropertyImage(supabase, user.id, file, ext));
+      }
+      const now = new Date();
+      const payload = {
+        ...data.payload,
+        plan: plan.id,
+        featured: plan.is_featured,
+        featured_at: plan.is_featured ? now.toISOString() : null,
+        expires_at: new Date(
+          now.getTime() + plan.duration_days * 86400000,
+        ).toISOString(),
+      };
+      const id = await createProperty(
+        supabase,
+        user.id,
+        payload,
+        urls,
+        data.amenityIds,
+      );
+      router.push(`/inmueble/${id}`);
+    } catch (err: any) {
+      setError(err?.message ?? "No se pudo publicar. Intenta de nuevo.");
+      setPublishing(false);
+    }
+  };
+
+  // Cuando el formulario entrega los datos: si es inmobiliaria con promo,
+  // publica directo; si no, pasa a elegir plan.
+  const handleCollected = (data: CollectedProperty) => {
+    setCollected(data);
+    if (agencyPromo) {
+      finalize(AGENCY_PLAN, data);
+    } else {
       setStep("plan");
     }
+  };
+
+  // Al elegir un plan: si es pago, va a la pantalla de pago; si es gratis, publica.
+  const pickPlan = (p: Plan) => {
+    setChosen(p);
+    if (p.price > 0) setStep("pago");
+    else finalize(p);
   };
 
   return (
@@ -104,16 +158,16 @@ export default function PublicarPage() {
             <ol className="mt-6 flex flex-col gap-4">
               {[
                 {
-                  t: "Elige un plan",
-                  d: "Publica gratis o destaca tu inmueble para llegar a más personas.",
-                },
-                {
                   t: "Completa los datos",
                   d: "Tipo, precio, ubicación, habitaciones, baños y características.",
                 },
                 {
                   t: "Sube fotos",
                   d: "Agrega buenas fotos: son lo que más atrae a los interesados.",
+                },
+                {
+                  t: "Elige cómo publicar",
+                  d: "Al final eliges tu plan: publica gratis o destaca tu inmueble.",
                 },
                 {
                   t: "¡Publica!",
@@ -142,19 +196,52 @@ export default function PublicarPage() {
             </button>
             <p className="mt-3 text-center text-xs text-zinc-400">
               {user
-                ? "Continúa para elegir tu plan."
+                ? "Primero completas los datos; al final eliges el plan."
                 : "Te pediremos iniciar sesión para continuar."}
             </p>
           </div>
         )}
 
+        {step === "form" && user && (
+          <>
+            <h1 className="mb-1 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+              Datos del inmueble
+            </h1>
+            <p className="mb-6 text-zinc-500">
+              Completa la información y las fotos. Al final eliges cómo publicar.
+            </p>
+            <PropertyForm
+              userId={user.id}
+              collectMode
+              onCollect={handleCollected}
+              submitLabel={
+                agencyPromo ? "Publicar (gratis)" : "Continuar a elegir plan"
+              }
+            />
+            {publishing && (
+              <p className="mt-4 text-center text-sm text-zinc-500">
+                Publicando…
+              </p>
+            )}
+            {error && (
+              <p className="mt-4 text-center text-sm text-red-600">{error}</p>
+            )}
+          </>
+        )}
+
         {step === "plan" && (
           <>
+            <button
+              onClick={() => setStep("form")}
+              className="mb-3 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
+              ← Volver a los datos
+            </button>
             <h1 className="mb-1 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
               Elige cómo publicar
             </h1>
             <p className="mb-6 text-zinc-500">
-              Selecciona un plan para tu inmueble.
+              Selecciona un plan para publicar tu inmueble.
             </p>
             <div className="flex flex-col gap-4">
               {plans.map((p) => (
@@ -202,6 +289,14 @@ export default function PublicarPage() {
                 </div>
               ))}
             </div>
+            {publishing && (
+              <p className="mt-4 text-center text-sm text-zinc-500">
+                Publicando…
+              </p>
+            )}
+            {error && (
+              <p className="mt-4 text-center text-sm text-red-600">{error}</p>
+            )}
           </>
         )}
 
@@ -225,10 +320,11 @@ export default function PublicarPage() {
               {bancolombia || "Datos de pago no configurados."}
             </pre>
             <button
-              onClick={() => setStep("form")}
-              className="mt-5 w-full rounded-lg bg-emerald-700 py-3 font-medium text-white hover:bg-emerald-800"
+              onClick={() => finalize(chosen)}
+              disabled={publishing}
+              className="mt-5 w-full rounded-lg bg-emerald-700 py-3 font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
             >
-              Ya hice la transferencia, continuar
+              {publishing ? "Publicando…" : "Ya hice la transferencia, publicar"}
             </button>
             <button
               onClick={() => setStep("plan")}
@@ -236,30 +332,12 @@ export default function PublicarPage() {
             >
               ← Volver a planes
             </button>
+            {error && (
+              <p className="mt-2 text-center text-sm text-red-600">{error}</p>
+            )}
             <p className="mt-2 text-center text-xs text-zinc-400">
               Guarda el comprobante por si el administrador lo solicita.
             </p>
-          </>
-        )}
-
-        {step === "form" && chosen && user && (
-          <>
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <span>{chosen.is_featured ? "⭐" : "✓"}</span>
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                Plan {chosen.name} · {chosen.duration_days} días
-              </span>
-              <button
-                onClick={() => setStep("plan")}
-                className="ml-auto text-emerald-700 hover:underline"
-              >
-                Cambiar
-              </button>
-            </div>
-            <h1 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-              Publicar inmueble
-            </h1>
-            <PropertyForm userId={user.id} plan={chosen} />
           </>
         )}
       </main>

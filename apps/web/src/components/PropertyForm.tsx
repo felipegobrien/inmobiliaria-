@@ -48,14 +48,27 @@ const CATEGORY_ORDER: AmenityCategory[] = [
   "general",
 ];
 
+export type CollectedProperty = {
+  payload: PropertyInput;
+  files: File[];
+  amenityIds: number[];
+};
+
 export function PropertyForm({
   userId,
   initial,
   plan,
+  collectMode,
+  onCollect,
+  submitLabel,
 }: {
   userId: string;
   initial?: PropertyWithImages;
   plan?: Plan;
+  /** Si es true, al enviar NO publica: entrega los datos vía onCollect. */
+  collectMode?: boolean;
+  onCollect?: (data: CollectedProperty) => void;
+  submitLabel?: string;
 }) {
   const router = useRouter();
   const isEdit = !!initial;
@@ -160,12 +173,6 @@ export function PropertyForm({
     setSaving(true);
 
     try {
-      const urls: string[] = [];
-      for (const file of files) {
-        const ext = file.name.split(".").pop() ?? "jpg";
-        urls.push(await uploadPropertyImage(supabase, userId, file, ext));
-      }
-
       const payload: PropertyInput = {
         title: form.title,
         description: form.description || null,
@@ -209,6 +216,22 @@ export function PropertyForm({
         }
       }
 
+      const amenityIds = Array.from(selectedAmenities);
+
+      // Modo "recolectar": no publica; entrega los datos para elegir plan.
+      if (collectMode && onCollect) {
+        onCollect({ payload, files, amenityIds });
+        setSaving(false);
+        return;
+      }
+
+      // Subida de fotos (solo cuando de verdad se guarda).
+      const urls: string[] = [];
+      for (const file of files) {
+        const ext = file.name.split(".").pop() ?? "jpg";
+        urls.push(await uploadPropertyImage(supabase, userId, file, ext));
+      }
+
       // Plan elegido (solo al crear): define destacado y vencimiento.
       if (!isEdit && plan) {
         const now = new Date();
@@ -220,7 +243,6 @@ export function PropertyForm({
         ).toISOString();
       }
 
-      const amenityIds = Array.from(selectedAmenities);
       let id: string;
       if (isEdit) {
         await updateProperty(supabase, initial!.id, payload, urls, amenityIds);
@@ -605,9 +627,7 @@ export function PropertyForm({
       >
         {saving
           ? "Guardando…"
-          : isEdit
-            ? "Guardar cambios"
-            : "Publicar inmueble"}
+          : submitLabel ?? (isEdit ? "Guardar cambios" : "Publicar inmueble")}
       </button>
     </form>
   );
