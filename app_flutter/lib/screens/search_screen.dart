@@ -131,7 +131,7 @@ class _SearchScreenState extends State<SearchScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Logo Casality (wordmark)
+            // Logo Ercada (wordmark)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
               child: Align(
@@ -145,11 +145,11 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     children: [
                       TextSpan(
-                        text: 'Casa',
+                        text: 'Erca',
                         style: TextStyle(color: AppColors.primary),
                       ),
                       TextSpan(
-                        text: 'lity',
+                        text: 'da',
                         style: TextStyle(color: AppColors.text),
                       ),
                     ],

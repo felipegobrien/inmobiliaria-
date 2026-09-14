@@ -11,10 +11,10 @@ export function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Link
           href="/"
-          aria-label="Casality — inicio"
+          aria-label="Ercada — inicio"
           className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white"
         >
-          <span className="text-emerald-700 dark:text-emerald-400">Casa</span>lity
+          <span className="text-emerald-700 dark:text-emerald-400">Erca</span>da
         </Link>
 
         <nav className="flex items-center gap-3 text-sm">
