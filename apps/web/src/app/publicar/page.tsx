@@ -37,7 +37,10 @@ export default function PublicarPage() {
   const [chosen, setChosen] = useState<Plan | null>(null);
 
   useEffect(() => {
-    getPlans(supabase).then(setPlans).catch(console.error);
+    // Ocultamos el plan premium por ahora (se puede reactivar luego).
+    getPlans(supabase)
+      .then((ps) => setPlans(ps.filter((p) => p.id !== "premium")))
+      .catch(console.error);
     getSetting(supabase, "bancolombia_info")
       .then((v) => setBancolombia(v ?? ""))
       .catch(console.error);

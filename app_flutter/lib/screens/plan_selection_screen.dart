@@ -62,7 +62,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       final p = await PropertyService.plans();
       if (mounted) {
         setState(() {
-          _plans = p;
+          // Ocultamos el plan premium por ahora (se puede reactivar luego).
+          _plans = p.where((pl) => pl.id != 'premium').toList();
           _loading = false;
         });
       }
