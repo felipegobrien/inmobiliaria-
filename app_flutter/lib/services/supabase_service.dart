@@ -172,6 +172,37 @@ class PropertyService {
     }
   }
 
+  /// Geocodificación inversa: coordenadas → dirección legible (OpenStreetMap).
+  static Future<({String? address, String? neighborhood, String? city})?>
+      reverseGeocode(double lat, double lng) async {
+    try {
+      final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse?format=jsonv2'
+          '&accept-language=es&lat=$lat&lon=$lng');
+      final r = await http.get(uri, headers: {
+        'User-Agent': 'inmobiliaria-app/1.0 (contacto@inmobiliaria.app)',
+      }).timeout(const Duration(seconds: 8));
+      if (r.statusCode != 200) return null;
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      final a = (data['address'] as Map<String, dynamic>?) ?? {};
+      final road = a['road'] as String?;
+      final house = a['house_number'] as String?;
+      final street = [road, house].where((e) => e != null && e.isNotEmpty).join(' ');
+      final display = (data['display_name'] as String?);
+      return (
+        address: street.isNotEmpty
+            ? street
+            : (display?.split(',').take(2).join(',').trim()),
+        neighborhood: (a['suburb'] ?? a['neighbourhood'] ?? a['city_district'])
+            as String?,
+        city: (a['city'] ?? a['town'] ?? a['municipality'] ?? a['village'])
+            as String?,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Inmueble con imágenes y datos del dueño.
   /// [registerView] cuenta una vista (no se cuenta en la vista previa del mapa).
   static Future<Property?> getById(String id, {bool registerView = true}) async {

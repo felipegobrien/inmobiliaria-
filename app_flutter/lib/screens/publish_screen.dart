@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/property.dart';
@@ -52,6 +53,7 @@ class _PublishScreenState extends State<PublishScreen> {
 
   LatLng? _picked; // ubicación elegida en el mapa
   bool _saving = false;
+  bool _locating = false;
 
   @override
   void initState() {
@@ -107,6 +109,51 @@ class _PublishScreenState extends State<PublishScreen> {
     if (res != null) setState(() => _picked = res);
   }
 
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  // Usa la ubicación actual del dispositivo: fija el pin y rellena la dirección.
+  Future<void> _useCurrentLocation() async {
+    setState(() => _locating = true);
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _snack('Activa la ubicación (GPS) del dispositivo.');
+        return;
+      }
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        _snack('Permiso de ubicación denegado. Marca el punto en el mapa.');
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      setState(() => _picked = LatLng(pos.latitude, pos.longitude));
+      final info =
+          await PropertyService.reverseGeocode(pos.latitude, pos.longitude);
+      if (info != null && mounted) {
+        setState(() {
+          if (info.address != null) _address.text = info.address!;
+          if (info.neighborhood != null && _neighborhood.text.trim().isEmpty) {
+            _neighborhood.text = info.neighborhood!;
+          }
+          if (info.city != null && _city.text.trim().isEmpty) {
+            _city.text = info.city!;
+          }
+        });
+      }
+    } catch (_) {
+      _snack('No pudimos obtener tu ubicación. Marca el punto en el mapa.');
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
   Future<void> _pickImages() async {
     final picked = await ImagePicker().pickMultiImage(imageQuality: 70);
     if (picked.isNotEmpty) setState(() => _photos.addAll(picked));
@@ -141,6 +188,11 @@ class _PublishScreenState extends State<PublishScreen> {
         _department == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Completa título, precio, departamento y ciudad.')));
+      return;
+    }
+    // Al crear, la ubicación en el mapa es obligatoria.
+    if (!isEdit && _picked == null) {
+      _snack('Marca la ubicación: usa «Usar mi ubicación actual» o el mapa.');
       return;
     }
     setState(() => _saving = true);
@@ -440,6 +492,27 @@ class _PublishScreenState extends State<PublishScreen> {
               onPicked: (lat, lng) =>
                   setState(() => _picked = LatLng(lat, lng)),
             ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _locating ? null : _useCurrentLocation,
+              icon: _locating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.primary),
+                    )
+                  : const Icon(Icons.explore_outlined),
+              label: Text(
+                  _locating ? 'Ubicando…' : 'Usar mi ubicación actual'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: const BorderSide(color: AppColors.primary),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
 
             _label('Código (opcional)'),
             TextField(
@@ -449,7 +522,7 @@ class _PublishScreenState extends State<PublishScreen> {
               ),
             ),
 
-            _label('Ubicación en el mapa'),
+            _label('Ubicación en el mapa *'),
             GestureDetector(
               onTap: _openLocationPicker,
               child: _picked == null
