@@ -13,6 +13,7 @@ import {
   searchNeighborhoods,
   geocodeAddress,
   geocodeSuggestions,
+  reverseGeocode,
   type PlaceSuggestion,
   OPERATION_LABELS,
   TYPE_LABELS,
@@ -119,6 +120,41 @@ export function PropertyForm({
 
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
+
+  // Usa la ubicación actual del dispositivo: fija el pin y rellena la dirección.
+  const useCurrentLocation = () => {
+    if (!("geolocation" in navigator)) {
+      setError("Tu navegador no permite acceder a la ubicación.");
+      return;
+    }
+    setLocating(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        setPlaced(true);
+        setRecenter({ lat, lng });
+        const info = await reverseGeocode(lat, lng);
+        if (info) {
+          if (info.address) set("address", info.address);
+          if (info.neighborhood && !form.neighborhood)
+            set("neighborhood", info.neighborhood);
+          if (info.city && !form.city) set("city", info.city);
+        }
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        setError(
+          "No pudimos obtener tu ubicación. Actívala o marca el punto en el mapa.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const centerOnAddress = async () => {
     const q = [form.address, form.neighborhood, form.city]
@@ -170,6 +206,20 @@ export function PropertyForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Al crear, la ubicación en el mapa es obligatoria.
+    if (!isEdit && (!placed || !coords)) {
+      setError(
+        "Marca la ubicación en el mapa: usa «Usar mi ubicación actual» o mueve el mapa hasta tu propiedad.",
+      );
+      if (typeof window !== "undefined") {
+        document
+          .getElementById("ubicacion-mapa")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -438,23 +488,47 @@ export function PropertyForm({
           />
         </Labeled>
         <Labeled label="Dirección">
-          <PlacesAddress
-            value={form.address}
-            onChange={(v) => set("address", v)}
-            onPicked={(lat, lng) => {
-              setCoords({ lat, lng });
-              setPlaced(true);
-              setRecenter({ lat, lng });
-            }}
-          />
+          <div className="flex flex-col gap-2">
+            <PlacesAddress
+              value={form.address}
+              onChange={(v) => set("address", v)}
+              onPicked={(lat, lng) => {
+                setCoords({ lat, lng });
+                setPlaced(true);
+                setRecenter({ lat, lng });
+              }}
+            />
+            <button
+              type="button"
+              onClick={useCurrentLocation}
+              disabled={locating}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+              </svg>
+              {locating ? "Ubicando…" : "Usar mi ubicación actual"}
+            </button>
+          </div>
         </Labeled>
       </div>
 
       {/* Ubicación en el mapa */}
-      <div className="flex flex-col gap-2">
+      <div id="ubicacion-mapa" className="flex flex-col gap-2 scroll-mt-24">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">
-            Ubicación en el mapa
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Ubicación en el mapa <span className="text-red-600">*</span>
           </span>
           <button
             type="button"

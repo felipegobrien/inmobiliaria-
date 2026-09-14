@@ -645,6 +645,39 @@ export async function geocodeAddress(
   }
 }
 
+/** Geocodificación inversa: coordenadas → dirección legible. */
+export async function reverseGeocode(
+  lat: number,
+  lng: number,
+): Promise<{
+  address: string | null;
+  neighborhood: string | null;
+  city: string | null;
+} | null> {
+  try {
+    const url =
+      'https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=es&lat=' +
+      lat +
+      '&lon=' +
+      lng;
+    const r = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+    if (!r.ok) return null;
+    const data = (await r.json()) as {
+      display_name?: string;
+      address?: Record<string, string>;
+    };
+    const a = data.address ?? {};
+    const street = [a.road, a.house_number].filter(Boolean).join(' ');
+    return {
+      address: street || data.display_name?.split(',').slice(0, 2).join(',').trim() || null,
+      neighborhood: a.suburb ?? a.neighbourhood ?? a.city_district ?? null,
+      city: a.city ?? a.town ?? a.municipality ?? a.village ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Planes de publicación. */
 export async function getPlans(supabase: SupabaseClient): Promise<Plan[]> {
   const { data, error } = await supabase.from('plans').select('*').order('sort');
