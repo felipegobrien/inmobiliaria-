@@ -57,11 +57,17 @@ export function Header() {
         </nav>
       </div>
 
-      {/* Botón Mapa — fila propia, debajo del logo y "Publicar inmueble" */}
-      <div className="mx-auto max-w-6xl px-4 pb-4">
+      {/* Frase + botón Mapa — fila propia, debajo del logo y "Publicar inmueble" */}
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 pb-4">
+        <p className="text-sm font-medium leading-snug text-zinc-600 sm:text-base dark:text-zinc-400">
+          Tu próximo hogar está en{" "}
+          <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+            Ercada
+          </span>
+        </p>
         <Link
           href="/mapa"
-          className="group inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-semibold text-emerald-800 shadow-sm transition hover:bg-emerald-700 hover:text-white hover:shadow-md dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-600 dark:hover:text-white"
+          className="group inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 shadow-sm transition hover:bg-emerald-700 hover:text-white hover:shadow-md sm:px-5 sm:py-2.5 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-600 dark:hover:text-white"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -77,7 +83,8 @@ export function Header() {
             <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z" />
             <path d="M9 3v15M15 6v15" />
           </svg>
-          Ver en el mapa
+          <span className="sm:hidden">Mapa</span>
+          <span className="hidden sm:inline">Ver en el mapa</span>
         </Link>
       </div>
     </header>
