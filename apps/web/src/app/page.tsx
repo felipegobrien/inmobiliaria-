@@ -252,7 +252,7 @@ export default function Home() {
             <span className="text-zinc-900 dark:text-white">da</span>
           </span>
           <span>
-            Hecho y administrado por{" "}
+            Diseñado y desarrollado por{" "}
             <a
               href="https://deconmadigital.com/"
               target="_blank"
