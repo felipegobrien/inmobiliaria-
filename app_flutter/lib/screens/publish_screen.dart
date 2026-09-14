@@ -134,19 +134,7 @@ class _PublishScreenState extends State<PublishScreen> {
       }
       final pos = await Geolocator.getCurrentPosition();
       setState(() => _picked = LatLng(pos.latitude, pos.longitude));
-      final info =
-          await PropertyService.reverseGeocode(pos.latitude, pos.longitude);
-      if (info != null && mounted) {
-        setState(() {
-          if (info.address != null) _address.text = info.address!;
-          if (info.neighborhood != null && _neighborhood.text.trim().isEmpty) {
-            _neighborhood.text = info.neighborhood!;
-          }
-          if (info.city != null && _city.text.trim().isEmpty) {
-            _city.text = info.city!;
-          }
-        });
-      }
+      _snack('Ubicación marcada. Escribe la dirección exacta.');
     } catch (_) {
       _snack('No pudimos obtener tu ubicación. Marca el punto en el mapa.');
     } finally {

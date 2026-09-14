@@ -13,7 +13,6 @@ import {
   searchNeighborhoods,
   geocodeAddress,
   geocodeSuggestions,
-  reverseGeocode,
   type PlaceSuggestion,
   OPERATION_LABELS,
   TYPE_LABELS,
@@ -121,8 +120,10 @@ export function PropertyForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [located, setLocated] = useState(false);
 
-  // Usa la ubicación actual del dispositivo: fija el pin y rellena la dirección.
+  // Usa la ubicación actual del dispositivo: fija el pin exacto en el mapa.
+  // No autocompleta la dirección (la escribe el usuario).
   const useCurrentLocation = () => {
     if (!("geolocation" in navigator)) {
       setError("Tu navegador no permite acceder a la ubicación.");
@@ -131,19 +132,13 @@ export function PropertyForm({
     setLocating(true);
     setError(null);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setCoords({ lat, lng });
         setPlaced(true);
         setRecenter({ lat, lng });
-        const info = await reverseGeocode(lat, lng);
-        if (info) {
-          if (info.address) set("address", info.address);
-          if (info.neighborhood && !form.neighborhood)
-            set("neighborhood", info.neighborhood);
-          if (info.city && !form.city) set("city", info.city);
-        }
+        setLocated(true);
         setLocating(false);
       },
       () => {
@@ -520,6 +515,12 @@ export function PropertyForm({
               </svg>
               {locating ? "Ubicando…" : "Usar mi ubicación actual"}
             </button>
+            {located && (
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                ✓ Ubicación marcada en el mapa. Escribe la dirección exacta
+                (ej. Cra 45 #10-20).
+              </p>
+            )}
           </div>
         </Labeled>
       </div>
