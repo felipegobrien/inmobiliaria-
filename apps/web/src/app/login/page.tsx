@@ -25,7 +25,8 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push("/");
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    router.push(redirect || "/");
   };
 
   return (
