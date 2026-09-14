@@ -163,6 +163,7 @@ export async function searchProperties(
   if (filters.type) query = query.eq('type', filters.type);
   if (filters.ownerId) query = query.eq('owner_id', filters.ownerId);
   if (filters.city) query = query.ilike('city', filters.city);
+  if (filters.neighborhood) query = query.ilike('neighborhood', filters.neighborhood);
   if (filters.search) {
     const s = filters.search;
     const parts = [

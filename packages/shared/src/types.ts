@@ -117,6 +117,7 @@ export interface PropertyFilters {
   /** Limitar a los inmuebles de un dueño (sitios de marca blanca). */
   ownerId?: string;
   city?: string;
+  neighborhood?: string;    // barrio exacto (páginas SEO por barrio)
   search?: string;          // texto libre (título / barrio)
   minPrice?: number;
   maxPrice?: number;

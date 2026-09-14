@@ -46,6 +46,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const op of ops) {
       combos.add(`${op}/${citySlug}`);
       combos.add(`${op}/${citySlug}/${p.type}`);
+      if (p.neighborhood?.trim()) {
+        combos.add(`${op}/${citySlug}/barrio/${slugify(p.neighborhood)}`);
+      }
     }
   }
   for (const c of combos) {
