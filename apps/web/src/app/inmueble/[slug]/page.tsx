@@ -20,8 +20,22 @@ import { OwnerActions } from "@/components/OwnerActions";
 import { ContactPanel } from "@/components/ContactPanel";
 import { ReportButton } from "@/components/ReportButton";
 import { ShareButton } from "@/components/ShareButton";
+import PropertyMapClient from "@/components/PropertyMapClient";
 
 export const revalidate = 60; // re-genera cada minuto
+
+// Extrae lat/lng del campo `location` (GeoJSON Point: coordinates = [lng, lat]).
+function getLatLng(
+  loc: unknown,
+): { lat: number; lng: number } | null {
+  if (loc && typeof loc === "object" && "coordinates" in loc) {
+    const c = (loc as { coordinates?: unknown }).coordinates;
+    if (Array.isArray(c) && typeof c[0] === "number" && typeof c[1] === "number") {
+      return { lat: c[1], lng: c[0] };
+    }
+  }
+  return null;
+}
 
 export async function generateMetadata({
   params,
@@ -79,6 +93,15 @@ export default async function PropertyDetailPage({
   const cover =
     property.property_images?.find((i) => i.is_cover)?.url ??
     property.property_images?.[0]?.url;
+  const coords = getLatLng(property.location);
+  const fullAddress = [
+    property.address,
+    property.neighborhood,
+    property.city,
+    property.department,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   // Datos estructurados para Google
   const jsonLd = {
@@ -121,142 +144,216 @@ export default async function PropertyDetailPage({
         <Gallery images={property.property_images ?? []} title={property.title} />
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {property.featured && (
-                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                    ★ Destacado
+          <div className="flex flex-col gap-5 lg:col-span-2">
+            {/* Box: cabecera */}
+            <section className={box}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {property.featured && (
+                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                      ★ Destacado
+                    </span>
+                  )}
+                  <span className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">
+                    {OPERATION_LABELS[property.operation]}
+                  </span>
+                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                    {TYPE_LABELS[property.type]}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShareButton title={property.title} />
+                  <FavoriteButton propertyId={property.id} />
+                </div>
+              </div>
+
+              <h1 className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                {property.title}
+              </h1>
+              <p className="mt-1 flex items-center gap-1 text-zinc-500">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0" aria-hidden="true">
+                  <path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" />
+                  <circle cx="12" cy="10" r="2.5" />
+                </svg>
+                {[property.neighborhood, property.city, property.department]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+              {property.published_at && (
+                <p className="mt-1 text-xs text-zinc-400">
+                  Publicado el{" "}
+                  {new Date(property.published_at).toLocaleDateString("es-CO", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}{" "}
+                  · Cód. {property.code ?? property.ref}
+                </p>
+              )}
+
+              <p className="mt-4 text-3xl font-bold text-emerald-800 dark:text-emerald-400">
+                {formatPrice(property.price)}
+                {property.operation !== "venta" && (
+                  <span className="text-base font-normal text-zinc-500">
+                    {" / mes"}
                   </span>
                 )}
-                <span className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">
-                  {OPERATION_LABELS[property.operation]}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ShareButton title={property.title} />
-                <FavoriteButton propertyId={property.id} />
-              </div>
-            </div>
-
-            <h1 className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-              {property.title}
-            </h1>
-            <p className="text-zinc-500">
-              {[property.neighborhood, property.city, property.department]
-                .filter(Boolean)
-                .join(", ")}
-            </p>
-            {property.published_at && (
-              <p className="mt-1 text-xs text-zinc-400">
-                Publicado el{" "}
-                {new Date(property.published_at).toLocaleDateString("es-CO", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}{" "}
-                · Cód. {property.code ?? property.ref}
               </p>
-            )}
-            {owner?.role === "inmobiliaria" && owner.company && (
-              <a
-                href={`/inmobiliaria/${owner.agency_slug ?? owner.id}`}
-                className="mt-3 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800/40"
-              >
-                <span className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-white">
-                  {owner.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={owner.avatar_url}
-                      alt={owner.company ?? ""}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-emerald-700">🏠</span>
-                  )}
-                </span>
-                <span className="flex-1 text-base font-semibold capitalize text-emerald-800">
-                  {owner.company}
-                </span>
-                <span className="text-xs text-emerald-700">Ver →</span>
-              </a>
-            )}
-
-            <p className="mt-4 text-3xl font-bold text-emerald-800 dark:text-emerald-400">
-              {formatPrice(property.price)}
-              {property.operation !== "venta" && (
-                <span className="text-base font-normal text-zinc-500">{" / mes"}</span>
+              {!!property.admon_fee && (
+                <p className="text-sm text-zinc-500">
+                  + Administración {formatPrice(property.admon_fee)}/mes
+                </p>
               )}
-            </p>
-            {!!property.admon_fee && (
-              <p className="text-sm text-zinc-500">
-                + Administración {formatPrice(property.admon_fee)}/mes
-              </p>
-            )}
-
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <Stat label="Tipo" value={TYPE_LABELS[property.type]} />
-              <Stat label="Habitaciones" value={property.bedrooms} />
-              <Stat label="Baños" value={property.bathrooms} />
-              <Stat label="Parqueaderos" value={property.parking_spots} />
-              {property.area_m2 != null && (
-                <Stat label="Área" value={`${property.area_m2} m²`} />
+              {property.price_negotiable && (
+                <p className="mt-1 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                  Precio negociable
+                </p>
               )}
-              {property.estrato != null && (
-                <Stat label="Estrato" value={property.estrato} />
-              )}
-            </div>
 
+              {owner?.role === "inmobiliaria" && owner.company && (
+                <a
+                  href={`/inmobiliaria/${owner.agency_slug ?? owner.id}`}
+                  className="mt-4 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800/40"
+                >
+                  <span className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-white">
+                    {owner.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={owner.avatar_url}
+                        alt={owner.company ?? ""}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-emerald-700">🏠</span>
+                    )}
+                  </span>
+                  <span className="flex-1 text-base font-semibold capitalize text-emerald-800">
+                    {owner.company}
+                  </span>
+                  <span className="text-xs text-emerald-700">Ver →</span>
+                </a>
+              )}
+            </section>
+
+            {/* Box: características principales */}
+            <section className={box}>
+              <SectionTitle>Características</SectionTitle>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <Stat label="Tipo" value={TYPE_LABELS[property.type]} />
+                <Stat
+                  label="Operación"
+                  value={OPERATION_LABELS[property.operation]}
+                />
+                <Stat label="Habitaciones" value={property.bedrooms} />
+                <Stat label="Baños" value={property.bathrooms} />
+                <Stat label="Parqueaderos" value={property.parking_spots} />
+                {property.area_m2 != null && (
+                  <Stat label="Área" value={`${property.area_m2} m²`} />
+                )}
+                {property.built_area_m2 != null && (
+                  <Stat
+                    label="Área construida"
+                    value={`${property.built_area_m2} m²`}
+                  />
+                )}
+                {property.estrato != null && (
+                  <Stat label="Estrato" value={property.estrato} />
+                )}
+                {property.floor != null && (
+                  <Stat label="Piso" value={property.floor} />
+                )}
+                {property.age_years != null && (
+                  <Stat label="Antigüedad" value={`${property.age_years} años`} />
+                )}
+                {!!property.admon_fee && (
+                  <Stat
+                    label="Administración"
+                    value={`${formatPrice(property.admon_fee)}/mes`}
+                  />
+                )}
+                <Stat label="Código" value={property.code ?? property.ref} />
+              </div>
+            </section>
+
+            {/* Box: descripción */}
             {property.description && (
-              <div className="mt-6">
-                <h2 className="mb-2 font-semibold text-zinc-900 dark:text-zinc-50">
-                  Descripción
-                </h2>
+              <section className={box}>
+                <SectionTitle>Descripción</SectionTitle>
                 <p className="whitespace-pre-line text-zinc-600 dark:text-zinc-400">
                   {property.description}
                 </p>
-              </div>
+              </section>
             )}
 
+            {/* Box: características del inmueble (amenidades) */}
             <CharacteristicsView property={property} amenities={amenities} />
 
-            {property.nearby_places?.length > 0 && (
-              <div className="mt-6">
-                <h2 className="mb-2 font-semibold text-zinc-900 dark:text-zinc-50">
-                  Lugares cercanos
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {property.nearby_places.map((p) => (
-                    <span
-                      key={p}
-                      className="rounded-full bg-zinc-100 px-3 py-1 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                    >
-                      📍 {p}
-                    </span>
-                  ))}
+            {/* Box: ubicación + mapa */}
+            <section className={box}>
+              <SectionTitle>Ubicación</SectionTitle>
+              {fullAddress && (
+                <p className="mb-3 text-sm text-zinc-600 dark:text-zinc-400">
+                  {fullAddress}
+                </p>
+              )}
+              {coords ? (
+                <PropertyMapClient lat={coords.lat} lng={coords.lng} />
+              ) : (
+                <p className="text-sm text-zinc-400">
+                  Ubicación aproximada no disponible en el mapa.
+                </p>
+              )}
+              {property.nearby_places?.length > 0 && (
+                <div className="mt-4">
+                  <p className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                    Lugares cercanos
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {property.nearby_places.map((p) => (
+                      <span
+                        key={p}
+                        className="rounded-full bg-zinc-100 px-3 py-1 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                      >
+                        📍 {p}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </section>
 
             <ReportButton propertyId={property.id} />
           </div>
 
-          <ContactPanel
-            propertyId={property.id}
-            title={property.title}
-            ownerName={owner?.full_name ?? "Anunciante"}
-            company={owner?.company}
-            contactNumber={wppNumber}
-          />
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            <ContactPanel
+              propertyId={property.id}
+              title={property.title}
+              ownerName={owner?.full_name ?? "Anunciante"}
+              company={owner?.company}
+              contactNumber={wppNumber}
+            />
+          </div>
         </div>
       </main>
     </div>
   );
 }
 
+const box =
+  "rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900";
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-400">
+      {children}
+    </h2>
+  );
+}
+
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+    <div className="rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
       <p className="text-xs text-zinc-500">{label}</p>
       <p className="font-semibold text-zinc-900 dark:text-zinc-50">{value}</p>
     </div>
@@ -284,10 +381,8 @@ function CharacteristicsView({
   if (selected.length === 0) return null;
 
   return (
-    <div className="mt-6">
-      <h2 className="mb-3 font-semibold text-zinc-900 dark:text-zinc-50">
-        Características del inmueble
-      </h2>
+    <section className={box}>
+      <SectionTitle>Características del inmueble</SectionTitle>
       <div className="flex flex-col gap-4">
         {CAT_ORDER.map((cat) => {
           const items = selected.filter((a) => a.category === cat);
@@ -311,6 +406,6 @@ function CharacteristicsView({
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }
