@@ -591,29 +591,62 @@ export function PropertyForm({
         </div>
       )}
 
-      <Labeled
-        label={
-          isEdit ? "Agregar más fotos" : "Fotos (la primera será la portada)"
-        }
-      >
+      <div className="flex flex-col gap-2">
+        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+          Fotos
+        </p>
+        <label
+          htmlFor="fotos-input"
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-6 py-10 text-center transition hover:border-emerald-500 hover:bg-emerald-50/50 dark:border-zinc-700 dark:bg-zinc-900/50 dark:hover:border-emerald-500 dark:hover:bg-emerald-950/20"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-7 w-7"
+              aria-hidden="true"
+            >
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+              <circle cx="12" cy="13" r="3.5" />
+            </svg>
+          </span>
+          <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+            {isEdit ? "Agregar más fotos" : "Toca para subir fotos"}
+          </span>
+          <span className="text-sm text-zinc-500">
+            Arrastra o selecciona tus imágenes · La primera será la portada
+          </span>
+        </label>
         <input
+          id="fotos-input"
           type="file"
           accept="image/*"
           multiple
           onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-          className={input}
+          className="hidden"
         />
-      </Labeled>
+      </div>
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {files.map((f, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={i}
-              src={URL.createObjectURL(f)}
-              alt={`foto ${i + 1}`}
-              className="h-20 w-20 rounded-lg object-cover"
-            />
+            <div key={i} className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={URL.createObjectURL(f)}
+                alt={`foto ${i + 1}`}
+                className="h-20 w-20 rounded-lg object-cover"
+              />
+              {i === 0 && (
+                <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                  Portada
+                </span>
+              )}
+            </div>
           ))}
         </div>
       )}
