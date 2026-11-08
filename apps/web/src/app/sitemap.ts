@@ -77,5 +77,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
+  // Blog: índice + artículos publicados
+  urls.push({
+    url: `${SITE_URL}/blog`,
+    changeFrequency: "weekly",
+    priority: 0.6,
+  });
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("slug, updated_at, published_at")
+    .eq("status", "publicado");
+  for (const p of (posts ?? []) as {
+    slug: string;
+    updated_at: string;
+    published_at: string | null;
+  }[]) {
+    urls.push({
+      url: `${SITE_URL}/blog/${p.slug}`,
+      lastModified: p.updated_at,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
+  }
+
   return urls;
 }

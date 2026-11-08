@@ -90,10 +90,18 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-zinc-100 pt-6 text-sm text-zinc-500 dark:border-zinc-800/60 sm:flex-row">
-          <Link href="/" className="text-base font-extrabold tracking-tight">
-            <span className="text-emerald-700 dark:text-emerald-400">Erca</span>
-            <span className="text-zinc-900 dark:text-white">da</span>
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link href="/" className="text-base font-extrabold tracking-tight">
+              <span className="text-emerald-700 dark:text-emerald-400">Erca</span>
+              <span className="text-zinc-900 dark:text-white">da</span>
+            </Link>
+            <Link
+              href="/blog"
+              className="font-medium hover:text-emerald-700 dark:hover:text-emerald-400"
+            >
+              Blog
+            </Link>
+          </div>
           <span>
             Diseñado y desarrollado por{" "}
             <a
