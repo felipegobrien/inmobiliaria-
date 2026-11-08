@@ -11,9 +11,12 @@ import {
 } from "@inmo/shared";
 import { supabase } from "@/lib/supabase";
 import { geocodeSuggestions, type PlaceSuggestion } from "@inmo/shared";
+import Link from "next/link";
 import { Filters } from "@/components/Filters";
 import { PropertyCard } from "@/components/PropertyCard";
 import { Header } from "@/components/Header";
+import { SiteFooter } from "@/components/SiteFooter";
+import { TOP_CITIES } from "@/lib/seo-links";
 
 const QUICK_TYPES: PropertyType[] = [
   "apartamento",
@@ -261,27 +264,44 @@ export default function Home() {
         )}
       </main>
 
-      {/* FOOTER */}
-      <footer className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-zinc-500 sm:flex-row">
-          <span className="text-base font-extrabold tracking-tight">
-            <span className="text-emerald-700 dark:text-emerald-400">Erca</span>
-            <span className="text-zinc-900 dark:text-white">da</span>
-          </span>
-          <span>
-            Diseñado y desarrollado por{" "}
-            <a
-              href="https://deconmadigital.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+      {/* ENLACES INTERNOS (SEO): explora por ciudad */}
+      <section className="mx-auto max-w-6xl px-4 pb-12">
+        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+          Explora inmuebles por ciudad
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Apartamentos, casas y locales en venta y arriendo en las principales
+          ciudades de Colombia.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {TOP_CITIES.map((c) => (
+            <div
+              key={c.slug}
+              className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
             >
-              Deconma
-            </a>{" "}
-            · {new Date().getFullYear()}
-          </span>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
+                {c.name}
+              </h3>
+              <div className="mt-2 flex flex-wrap gap-2 text-sm">
+                <Link
+                  href={`/venta/${c.slug}`}
+                  className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
+                >
+                  En venta
+                </Link>
+                <Link
+                  href={`/arriendo/${c.slug}`}
+                  className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
+                >
+                  En arriendo
+                </Link>
+              </div>
+            </div>
+          ))}
         </div>
-      </footer>
+      </section>
+
+      <SiteFooter />
     </div>
   );
 }

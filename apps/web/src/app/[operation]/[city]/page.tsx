@@ -13,6 +13,7 @@ import { resolveCity, neighborhoodsInCity } from "@/lib/listings";
 import { slugify } from "@/lib/slug";
 import { Header } from "@/components/Header";
 import { PropertyCard } from "@/components/PropertyCard";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Breadcrumbs, JsonLd } from "@/components/Seo";
 
 export const revalidate = 60;
@@ -144,6 +145,7 @@ export default async function CityListingPage({
           {slugify(cityName)} · {operation}
         </p>
       </main>
+      <SiteFooter />
     </div>
   );
 }
